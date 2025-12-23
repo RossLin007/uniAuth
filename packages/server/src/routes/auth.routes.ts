@@ -912,6 +912,19 @@ authRouter.post('/oauth/:provider/callback', async (c) => {
             );
         }
 
+        // Check if MFA is required
+        if (result.mfaRequired) {
+            return c.json({
+                success: true,
+                data: {
+                    user: result.user,
+                    mfa_required: true,
+                    mfa_token: result.mfaToken,
+                },
+                message: result.message,
+            });
+        }
+
         return c.json({
             success: true,
             data: {

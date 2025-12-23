@@ -657,6 +657,8 @@ export class AuthService {
         user?: UserPublic;
         tokens?: TokenPair;
         isNewUser?: boolean;
+        mfaRequired?: boolean;
+        mfaToken?: string;
     }> {
         // Exchange code for tokens
         const oauthTokens = await exchangeOAuthCode(provider, code);
@@ -793,6 +795,24 @@ export class AuthService {
                 provider_email: oauthUserInfo.email || null,
                 provider_data: oauthUserInfo.raw || null,
             });
+        }
+
+        // Check if MFA is enabled for this user (skip for new users)
+        if (!isNewUser) {
+            const mfaEnabled = await mfaService.isMFAEnabled(user.id);
+            if (mfaEnabled) {
+                // Return MFA required instead of tokens
+                await this.logAudit(user.id, `login_oauth_${provider}_mfa_required`, ipAddress, deviceInfo?.user_agent);
+
+                return {
+                    success: true,
+                    message: 'MFA verification required / 需要 MFA 验证',
+                    user: this.toUserPublic(user),
+                    mfaRequired: true,
+                    mfaToken: await this.generateMFAToken(user.id),
+                    isNewUser: false,
+                };
+            }
         }
 
         // Generate tokens
@@ -1010,6 +1030,7 @@ export class AuthService {
                 // Return MFA required instead of tokens
                 // Log audit event
                 await this.logAudit(user.id, 'login_phone_mfa_required', ipAddress, deviceInfo?.user_agent);
+
 
                 return {
                     success: true,

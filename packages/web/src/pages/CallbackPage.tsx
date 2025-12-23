@@ -1,6 +1,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import MFAVerifyStep from '../components/MFAVerifyStep';
+
+interface User {
+    id: string;
+    phone: string | null;
+    email: string | null;
+    nickname: string | null;
+    avatar_url: string | null;
+}
 
 export default function CallbackPage() {
     const { provider } = useParams<{ provider: string }>();
@@ -9,6 +18,11 @@ export default function CallbackPage() {
     const { setAuth } = useAuthStore();
     const [error, setError] = useState<string | null>(null);
     const hasCalledRef = useRef(false);
+
+    // MFA state
+    const [mfaRequired, setMfaRequired] = useState(false);
+    const [mfaToken, setMfaToken] = useState('');
+    const [mfaUser, setMfaUser] = useState<User | null>(null);
 
     useEffect(() => {
         const handleCallback = async () => {
@@ -43,6 +57,14 @@ export default function CallbackPage() {
                     return;
                 }
 
+                // Check if MFA is required
+                if (data.data.mfa_required) {
+                    setMfaUser(data.data.user);
+                    setMfaToken(data.data.mfa_token);
+                    setMfaRequired(true);
+                    return;
+                }
+
                 // Store auth data
                 setAuth(data.data.user, data.data.access_token, data.data.refresh_token);
 
@@ -56,6 +78,29 @@ export default function CallbackPage() {
 
         handleCallback();
     }, [provider, searchParams, navigate, setAuth]);
+
+    const handleMFABack = () => {
+        // Reset and go to login page
+        setMfaRequired(false);
+        setMfaToken('');
+        setMfaUser(null);
+        navigate('/login');
+    };
+
+    // Show MFA verification step if required
+    if (mfaRequired && mfaUser && mfaToken) {
+        return (
+            <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
+                <div className="bg-canvas dark:bg-ocean rounded-2xl shadow-medium p-8 max-w-md w-full">
+                    <MFAVerifyStep
+                        user={mfaUser}
+                        mfaToken={mfaToken}
+                        onBack={handleMFABack}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     if (error) {
         return (
