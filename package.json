@@ -1,0 +1,39 @@
+{
+  "name": "uniauth",
+  "version": "1.1.0",
+  "description": "Unified Authentication Platform / 统一身份认证平台",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -F @uniauth/server dev",
+    "dev:web": "pnpm -F @uniauth/web dev",
+    "dev:all": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm -F @uniauth/web build",
+    "build:server": "pnpm -F @uniauth/server build",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -F @uniauth/server test:coverage",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r clean",
+    "security:audit": "node scripts/security-audit.mjs",
+    "docker:build": "docker build -t uniauth:latest .",
+    "docker:run": "docker run --rm -p 3000:3000 --env-file .env uniauth:latest",
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "prepare": "echo 'Ready to develop!'"
+  },
+  "keywords": [
+    "authentication",
+    "auth",
+    "sms",
+    "jwt",
+    "supabase",
+    "oauth2",
+    "unified-auth"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

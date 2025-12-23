@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Use system fonts with Inter as preferred */
+  html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+                 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC', 'Microsoft YaHei', 
+                 sans-serif;
+  }
+
+  :root {
+    /* Light Mode Colors */
+    --color-canvas: #ffffff;
+    --color-mist: #f8fafc;
+    --color-ink: #1e293b;
+    --color-stone: #64748b;
+  }
+
+  .dark {
+    /* Dark Mode Colors */
+    --color-canvas: #0f172a;
+    --color-mist: #1e293b;
+    --color-ink: #e2e8f0;
+    --color-stone: #94a3b8;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
