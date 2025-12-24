@@ -1,0 +1,112 @@
+{
+    "common": {
+        "loading": "加载中...",
+        "cancel": "取消",
+        "save": "保存",
+        "delete": "删除",
+        "edit": "编辑",
+        "create": "创建",
+        "submit": "提交",
+        "confirm": "确认",
+        "back": "返回",
+        "logout": "退出登录",
+        "copy": "复制",
+        "copied": "已复制到剪贴板！",
+        "success": "成功",
+        "error": "错误",
+        "warning": "警告"
+    },
+    "auth": {
+        "login": "登录",
+        "loginTitle": "开发者控制台",
+        "loginSubtitle": "登录以管理您的应用程序",
+        "phone": "手机",
+        "email": "邮箱",
+        "phoneNumber": "手机号码",
+        "emailAddress": "邮箱地址",
+        "verificationCode": "验证码",
+        "sendCode": "发送验证码",
+        "verifyAndLogin": "验证并登录",
+        "codeSentTo": "验证码已发送至 {{target}}",
+        "continueWith": "或者使用以下方式",
+        "continueWithGoogle": "使用 Google 登录",
+        "mfaVerification": "MFA 验证",
+        "mfaSubtitle": "请输入您的 6 位身份验证器代码",
+        "verify": "验证",
+        "cancelAndGoBack": "取消并返回"
+    },
+    "dashboard": {
+        "title": "开发者控制台",
+        "subtitle": "管理您的应用程序和凭据",
+        "newApp": "新建应用",
+        "noApps": "暂无应用。创建一个开始吧。",
+        "manage": "管理",
+        "hideDetails": "隐藏详情"
+    },
+    "app": {
+        "createTitle": "创建新应用",
+        "appName": "应用名称",
+        "appType": "应用类型",
+        "description": "描述",
+        "clientId": "客户端 ID",
+        "clientSecret": "客户端密钥",
+        "secretWarning": "请妥善保管此密钥。仅在服务端代码中使用。如有泄露请立即轮换。",
+        "deleteApp": "删除应用",
+        "createApp": "创建应用",
+        "appCreated": "应用创建成功！",
+        "appDeleted": "应用删除成功！",
+        "secretRotated": "密钥已轮换！请保存新密钥。",
+        "deleteConfirm": "确定要删除此应用吗？此操作无法撤销。",
+        "rotateConfirm": "确定要轮换密钥吗？旧密钥将立即失效。",
+        "types": {
+            "web": "Web 应用（服务端）",
+            "spa": "单页应用",
+            "native": "原生移动应用",
+            "m2m": "机器对机器"
+        }
+    },
+    "webhook": {
+        "title": "Webhooks",
+        "noWebhooks": "暂未配置 Webhook。",
+        "url": "URL",
+        "events": "事件",
+        "addWebhook": "添加 Webhook",
+        "testWebhook": "测试",
+        "deliveries": "投递记录"
+    },
+    "integration": {
+        "title": "集成指南",
+        "installSdk": "安装 SDK",
+        "frontend": "前端集成（手机/邮箱/OAuth）",
+        "frontendHint": "前端只需 clientId，不要暴露 Secret！",
+        "backend": "后端 M2M 认证",
+        "backendHint": "服务间调用使用 Client Credentials 流程",
+        "oauthCallback": "OAuth 回调处理",
+        "webhookHandler": "Webhook 事件处理",
+        "webhookHint": "接收用户注册、登录等实时事件通知",
+        "viewDocs": "查看完整 API 文档 →"
+    },
+    "language": {
+        "switch": "切换语言",
+        "en": "English",
+        "zh": "中文"
+    },
+    "theme": {
+        "light": "浅色",
+        "dark": "深色",
+        "system": "跟随系统"
+    },
+    "redirectUri": {
+        "title": "回调地址",
+        "noUrisConfigured": "未配置回调地址。OAuth 登录需要至少配置一个。",
+        "httpsRequired": "非本地地址必须使用 HTTPS",
+        "invalidUrl": "URL 格式无效",
+        "duplicate": "地址已存在",
+        "added": "回调地址已添加",
+        "removed": "回调地址已删除",
+        "addError": "添加失败",
+        "removeError": "删除失败",
+        "placeholder": "https://your-app.com/callback",
+        "hint": "OAuth 回调 URL。开发环境可使用 http://localhost"
+    }
+}

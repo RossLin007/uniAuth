@@ -310,6 +310,90 @@ export class OAuth2Service {
 
         logger.info('Client tokens revoked', { clientId, userId });
     }
+
+    /**
+     * Validate requested scopes against allowed app scopes
+     */
+    async validateScope(clientId: string, requestedScope: string | undefined): Promise<boolean> {
+        if (!requestedScope) return true; // No scope requested is usually fine, or default to all allowed
+
+        const scopes = requestedScope.split(' ');
+
+        // Fetch allowed scopes for the app
+        // We join applications -> app_scopes -> scopes
+        const { data, error } = await this.supabase
+            .from('app_scopes')
+            .select('scopes(name)')
+            .eq('app_id', (await this.getApplication(clientId))?.id);
+
+        if (error || !data) {
+            logger.warn('Failed to fetch app scopes', { clientId, error });
+            return false;
+        }
+
+        const allowedScopes = data.map((item: any) => item.scopes.name);
+
+        // Check if all requested scopes are allowed
+        const unknownScopes = scopes.filter(s => !allowedScopes.includes(s));
+
+        if (unknownScopes.length > 0) {
+            logger.warn('Invalid scopes requested', { clientId, unknownScopes });
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Issue Token for Client Credentials Grant (M2M)
+     */
+    async issueClientCredentialsToken(
+        clientId: string,
+        clientSecret: string,
+        scope?: string
+    ): Promise<OAuth2TokenResponse> {
+        // 1. Get Application
+        const app = await this.getApplication(clientId);
+        if (!app) throw new Error('invalid_client');
+
+        // 2. Validate Secret
+        let isSecretValid = false;
+        if (app.client_secret_hash) {
+            isSecretValid = await verifyClientSecret(clientSecret, app.client_secret_hash);
+        } else if (app.client_secret) {
+            isSecretValid = app.client_secret === clientSecret;
+        }
+
+        if (!isSecretValid) {
+            logger.warn('Invalid client secret for M2M', { clientId });
+            throw new Error('invalid_client');
+        }
+
+        // 3. Verify Grant Type
+        if (!app.allowed_grants.includes('client_credentials')) {
+            logger.warn('Client credentials grant not allowed', { clientId });
+            throw new Error('unauthorized_client');
+        }
+
+        // 4. Validate Scopes
+        if (scope && !(await this.validateScope(clientId, scope))) {
+            throw new Error('invalid_scope');
+        }
+
+        // 5. Generate Access Token (sub = client_id)
+        // For M2M, there is no user, so we pass { id: clientId } as user
+        const accessToken = await generateAccessToken({ id: clientId }, {
+            clientId: clientId,
+            scope: scope
+        });
+
+        // 6. Return Token (no refresh token for client_credentials)
+        return {
+            access_token: accessToken,
+            token_type: 'Bearer',
+            expires_in: 3600, // 1 hour
+        };
+    }
 }
 
 export const oauth2Service = new OAuth2Service();

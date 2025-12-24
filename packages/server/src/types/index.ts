@@ -74,7 +74,9 @@ export interface OAuthUserInfo {
 }
 
 // Application types
-// Application types
+export type AppType = 'web' | 'spa' | 'native' | 'm2m';
+export type GrantType = 'authorization_code' | 'trusted_client' | 'client_credentials' | 'refresh_token';
+
 export interface Application {
     id: string;
     client_id: string;
@@ -85,6 +87,8 @@ export interface Application {
     homepage_url: string | null;
     redirect_uris: string[];
     is_trusted: boolean;
+    app_type: AppType;
+    allowed_grants: GrantType[];
     status: 'active' | 'suspended';
     created_at: string;
     updated_at: string;
@@ -112,11 +116,16 @@ export interface OAuth2AuthorizeRequest {
 }
 
 export interface OAuth2TokenRequest {
+    grant_type: 'authorization_code' | 'client_credentials' | 'refresh_token' | 'password';
     client_id: string;
-    client_secret: string;
-    code: string;
-    grant_type: 'authorization_code';
-    redirect_uri: string;
+    client_secret?: string;
+    code?: string;
+    redirect_uri?: string;
+    refresh_token?: string;
+    username?: string;
+    password?: string;
+    scope?: string;
+    code_verifier?: string;
 }
 
 export interface OAuth2TokenResponse {
@@ -146,8 +155,12 @@ export interface TokenPair {
 
 export interface JWTPayload {
     sub: string; // user id
+    aud?: string; // audience (client_id)
+    azp?: string; // authorized party
+    iss?: string; // issuer
     phone?: string;
     email?: string;
+    scope?: string;
     iat: number;
     exp: number;
 }

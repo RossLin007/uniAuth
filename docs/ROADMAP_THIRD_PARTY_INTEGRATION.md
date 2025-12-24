@@ -246,22 +246,188 @@ export class UniAuthClient {
 
 > **目标**: 提供自助管理界面，完善企业级功能
 
-#### 3.3.1 功能列表
+#### 3.3.1 开发者控制台 UI
 
-- [ ] 开发者控制台 UI (应用 CRUD)
-- [ ] 应用 Secret 轮换
-- [ ] Webhooks 事件通知
-- [ ] IP 黑/白名单
-- [ ] OIDC 完整实现 (Discovery, JWKS 端点)
+一个 Web 管理界面，让第三方开发者**自助管理**其应用：
 
----
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🏠 开发者控制台                              👤 developer@x.com │
+├─────────────────────────────────────────────────────────────┤
+│  📦 我的应用 (2)                          [+ 创建新应用]      │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  🔵 MyApp                                             │   │
+│  │  Client ID: ua_xxx...xxx                              │   │
+│  │  类型: Web App | 状态: 活跃 | 本月登录: 1,234           │   │
+│  │  [编辑] [查看日志] [删除]                               │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**功能清单**:
+- [ ] 开发者登录/注册
+- [ ] 应用列表页
+- [ ] 创建应用表单 (类型选择、Logo 上传、Redirect URI 配置)
+- [ ] 应用详情/编辑页
+- [ ] 凭证管理页 (查看 client_id，脱敏显示 secret)
+- [ ] 统计仪表盘 (登录次数、活跃用户、趋势图)
+- [ ] 日志查看页 (该应用的认证日志)
+
+#### 3.3.2 应用 Secret 轮换
+
+安全最佳实践，定期更换 `client_secret`：
+
+```
+┌─────────────────────────────────────────────┐
+│  🔐 凭证管理                                 │
+├─────────────────────────────────────────────┤
+│  Client ID:     ua_abc123...                │
+│  Client Secret: ●●●●●●●●●●●●  [显示] [复制] │
+│                                             │
+│  ⚠️ 上次轮换: 90 天前                        │
+│  [🔄 轮换 Secret]                            │
+│                                             │
+│  轮换后，旧 Secret 将在 24 小时后失效         │
+└─────────────────────────────────────────────┘
+```
+
+**功能清单**:
+- [ ] 生成新 Secret API
+- [ ] 旧 Secret 延迟失效机制 (grace period)
+- [ ] 轮换历史记录
+
+#### 3.3.3 Webhooks 事件通知
+
+当特定事件发生时，UniAuth 向第三方应用推送通知：
+
+| 事件 | 触发时机 | 用途 |
+| :--- | :--- | :--- |
+| `user.login` | 用户通过此应用登录 | 同步登录状态 |
+| `user.logout` | 用户登出 | 清理会话 |
+| `user.register` | 新用户注册 | 初始化用户数据 |
+| `user.mfa_enabled` | 用户开启 MFA | 安全通知 |
+| `token.revoked` | Token 被撤销 | 同步失效 |
+
+**请求格式**:
+```http
+POST https://myapp.com/webhooks/uniauth
+X-UniAuth-Signature: sha256=xxx
+Content-Type: application/json
+
+{
+  "event": "user.login",
+  "timestamp": "2025-12-23T22:00:00Z",
+  "data": {
+    "user_id": "user_123",
+    "client_id": "ua_abc123",
+    "ip_address": "1.2.3.4"
+  }
+}
+```
+
+**功能清单**:
+- [ ] Webhook 配置 CRUD API
+- [ ] 事件触发机制
+- [ ] HMAC 签名验证
+- [ ] 重试机制 (失败重试 3 次，指数退避)
+- [ ] 调用日志
+
+#### 3.3.4 IP 黑/白名单
+
+应用级别的访问控制：
+
+| 类型 | 作用 |
+| :--- | :--- |
+| **IP 白名单** | 仅允许指定 IP 调用 Trusted API (后端服务器) |
+| **IP 黑名单** | 阻止可疑 IP 的登录请求 |
+
+**功能清单**:
+- [ ] IP 名单配置 API
+- [ ] 请求拦截中间件
+- [ ] 命中日志记录
+
+#### 3.3.5 OIDC 完整实现
+
+补全 OpenID Connect 标准端点，使第三方可用标准库直接对接：
+
+| 端点 | 描述 |
+| :--- | :--- |
+| `/.well-known/openid-configuration` | Discovery 文档 |
+| `/oauth2/jwks` | 公钥集 (验证 JWT 签名) |
+| `/oauth2/userinfo` | 用户信息端点 (完善) |
+
+**功能清单**:
+- [ ] Discovery 端点实现
+- [ ] JWKS 端点实现
+- [ ] ID Token 生成 (符合 OIDC 规范)
+- [ ] UserInfo 端点完善
+
+#### 3.3.6 交付物
+
+- [ ] 开发者控制台前端 (`packages/developer-console/`)
+- [ ] 开发者身份管理 API
+- [ ] 应用管理 API (CRUD)
+- [ ] Secret 轮换 API
+- [ ] Webhooks 系统
+- [ ] IP 控制中间件
+- [ ] OIDC 端点
+- [ ] 集成测试
+- [ ] 文档更新
 
 ### Phase 4: 高级功能 (待规划)
 
-- [ ] 自定义 Claims
-- [ ] 登录流程 Hooks
-- [ ] 品牌自定义 (登录页主题)
-- [ ] SAML 2.0 (企业 SSO)
+> 以下功能根据实际需求择优实现
+
+#### 4.1 自定义 Claims
+
+允许在 JWT Token 中添加自定义字段，资源服务器无需额外查询即可获取用户扩展信息：
+
+```typescript
+// Token Payload 示例
+{
+  "sub": "user_123",
+  "email": "alice@example.com",
+  // 自定义 Claims
+  "org_id": "org_456",
+  "roles": ["admin", "editor"],
+  "plan": "enterprise"
+}
+```
+
+- [ ] Claims 配置管理
+- [ ] Token 生成时动态注入
+
+#### 4.2 登录流程 Hooks (Actions)
+
+在登录流程的关键节点插入自定义逻辑：
+
+| Hook | 触发时机 | 用途示例 |
+| :--- | :--- | :--- |
+| `pre-login` | 认证前 | IP 白名单检查、封号验证 |
+| `post-login` | 认证成功后 | 记录登录日志到外部系统 |
+| `post-register` | 新用户注册后 | 发送欢迎邮件、创建默认数据 |
+| `token-exchange` | Token 生成时 | 动态添加 Claims |
+
+- [ ] Hook 配置管理
+- [ ] Webhook 调用机制
+- [ ] 超时与重试策略
+
+#### 4.3 Passkey / WebAuthn
+
+无密码生物识别登录，未来趋势：
+
+- [ ] WebAuthn 注册流程
+- [ ] WebAuthn 登录流程
+- [ ] 设备管理 (已注册的 Passkey 列表)
+
+#### 4.4 品牌自定义 (White-Label)
+
+允许应用自定义 UniAuth 托管登录页的外观：
+
+- [ ] Logo / Favicon 配置
+- [ ] 主题色 / 背景色
+- [ ] 自定义 CSS
+- [ ] 登录页文案 (多语言)
 
 ---
 
@@ -342,6 +508,67 @@ const loginUrl = auth.getAuthorizationUrl({
     scope: 'profile email',
     state: 'random_state',
 });
+```
+
+### 5.3 开发者文档规划
+
+为开发者提供完整的文档体系：
+
+#### 文档结构
+
+```
+docs/
+├── README.md                    # 文档首页/索引
+├── QUICKSTART.md               # 快速入门 (5 分钟接入)
+├── DEVELOPER_GUIDE.md          # 开发者完整指南 (已有，需更新)
+├── INTEGRATION.md              # 集成说明 (已有，需更新)
+├── API_REFERENCE.md            # API 完整参考
+├── SDK_GUIDE.md                # SDK 使用指南
+├── SECURITY_BEST_PRACTICES.md  # 安全最佳实践
+├── TROUBLESHOOTING.md          # 常见问题与故障排查
+├── CHANGELOG.md                # 版本更新日志
+└── examples/                   # 示例代码
+    ├── nextjs-example/         # Next.js 集成示例
+    ├── express-example/        # Express 后端示例
+    └── react-spa-example/      # React SPA 示例 (PKCE)
+```
+
+#### 文档内容清单
+
+| 文档 | 内容 | 阶段 |
+| :--- | :--- | :---: |
+| **QUICKSTART.md** | 5 分钟快速接入教程，含可运行示例 | Phase 1 |
+| **API_REFERENCE.md** | 所有 API 端点详细说明、请求/响应格式 | Phase 1 |
+| **SDK_GUIDE.md** | SDK 安装、配置、完整 API 文档 | Phase 1 |
+| **examples/** | 3 个完整示例项目 (Next.js/Express/React SPA) | Phase 1 |
+| **SECURITY_BEST_PRACTICES.md** | Token 存储、Secret 保护、CORS 配置 | Phase 1 |
+| **TROUBLESHOOTING.md** | 错误码说明、常见问题解答 | Phase 2 |
+| **Webhooks 文档** | Webhook 配置与事件处理 | Phase 3 |
+| **开发者控制台指南** | 控制台使用说明 | Phase 3 |
+
+#### 示例项目内容
+
+**Next.js 示例** (`examples/nextjs-example/`):
+```typescript
+// 嵌入式登录页面
+// OAuth2 回调处理
+// 中间件 Token 验证
+// 用户信息展示
+```
+
+**Express 后端示例** (`examples/express-example/`):
+```typescript
+// Trusted API 调用
+// Token 验证中间件
+// M2M 认证
+// Webhook 接收处理
+```
+
+**React SPA 示例** (`examples/react-spa-example/`):
+```typescript
+// PKCE 授权码流程
+// Token 自动刷新
+// 登录状态管理
 ```
 
 ---

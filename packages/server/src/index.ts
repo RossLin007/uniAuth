@@ -8,6 +8,8 @@ import { authRouter } from './routes/auth.routes.js';
 import { userRouter } from './routes/user.routes.js';
 import { oauth2Router } from './routes/oauth2.routes.js';
 import { mfaRouter } from './routes/mfa.routes.js';
+import trustedAuthRouter from './routes/trusted-auth.routes.js';
+import { developerRouter } from './routes/developer.routes.js';
 import { healthRouter } from './routes/health.routes.js';
 import { docsRouter } from './routes/docs.routes.js';
 import { env } from './config/index.js';
@@ -59,8 +61,8 @@ app.use(
     cors({
         origin: env.CORS_ORIGINS.split(',').map((o) => o.trim()),
         allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
-        exposeHeaders: ['X-Request-Id', 'X-RateLimit-Limit', 'X-RateLimit-Remaining', 'Retry-After'],
+        allowHeaders: ['Content-Type', 'Authorization', 'X-Client-Id', 'X-Client-Secret', 'X-UniAuth-Event', 'X-UniAuth-Delivery', 'X-UniAuth-Signature'],
+        exposeHeaders: ['Content-Length', 'X-Request-Id', 'X-RateLimit-Limit', 'X-RateLimit-Remaining', 'Retry-After'],
         credentials: true,
         maxAge: 86400,
     })
@@ -87,6 +89,8 @@ app.route('/', docsRouter);
 // API Routes
 // ============================================
 app.route('/api/v1/auth', authRouter);
+app.route('/api/v1/auth/trusted', trustedAuthRouter);
+app.route('/api/v1/developer', developerRouter);
 app.route('/api/v1/user', userRouter);
 app.route('/api/v1/oauth2', oauth2Router);
 app.route('/api/v1/mfa', mfaRouter);
@@ -109,8 +113,12 @@ app.notFound((c) => {
     );
 });
 
+// Start Webhook Worker
+import { webhookService } from './services/webhook.service.js';
+webhookService.startWorker();
+
 // ============================================
-// Error Handler
+// Error Handling
 // ============================================
 app.onError((err, c) => {
     const requestId = c.get('requestId');

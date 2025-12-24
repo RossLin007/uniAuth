@@ -1,0 +1,112 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "cancel": "Cancel",
+        "save": "Save",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "submit": "Submit",
+        "confirm": "Confirm",
+        "back": "Back",
+        "logout": "Logout",
+        "copy": "Copy",
+        "copied": "Copied to clipboard!",
+        "success": "Success",
+        "error": "Error",
+        "warning": "Warning"
+    },
+    "auth": {
+        "login": "Login",
+        "loginTitle": "Developer Console",
+        "loginSubtitle": "Login to manage your applications",
+        "phone": "Phone",
+        "email": "Email",
+        "phoneNumber": "Phone Number",
+        "emailAddress": "Email Address",
+        "verificationCode": "Verification Code",
+        "sendCode": "Send Verification Code",
+        "verifyAndLogin": "Verify & Login",
+        "codeSentTo": "Code sent to {{target}}",
+        "continueWith": "Or continue with",
+        "continueWithGoogle": "Continue with Google",
+        "mfaVerification": "MFA Verification",
+        "mfaSubtitle": "Enter your 6-digit authenticator code",
+        "verify": "Verify",
+        "cancelAndGoBack": "Cancel and go back"
+    },
+    "dashboard": {
+        "title": "Developer Console",
+        "subtitle": "Manage your applications and credentials",
+        "newApp": "New App",
+        "noApps": "No applications found. Create one to get started.",
+        "manage": "Manage",
+        "hideDetails": "Hide Details"
+    },
+    "app": {
+        "createTitle": "Create New Application",
+        "appName": "App Name",
+        "appType": "App Type",
+        "description": "Description",
+        "clientId": "Client ID",
+        "clientSecret": "Client Secret",
+        "secretWarning": "Keep this secret safe. Only use in server-side code. Rotate if compromised.",
+        "deleteApp": "Delete App",
+        "createApp": "Create App",
+        "appCreated": "Application created successfully!",
+        "appDeleted": "Application deleted successfully!",
+        "secretRotated": "Secret rotated successfully! Make sure to save the new secret.",
+        "deleteConfirm": "Are you sure you want to delete this app? This cannot be undone.",
+        "rotateConfirm": "Are you sure? Old secret will stop working immediately.",
+        "types": {
+            "web": "Web App (Server-side)",
+            "spa": "Single Page App",
+            "native": "Native Mobile App",
+            "m2m": "Machine-to-Machine"
+        }
+    },
+    "webhook": {
+        "title": "Webhooks",
+        "noWebhooks": "No webhooks configured.",
+        "url": "URL",
+        "events": "Events",
+        "addWebhook": "Add Webhook",
+        "testWebhook": "Test",
+        "deliveries": "Deliveries"
+    },
+    "integration": {
+        "title": "Integration Guide",
+        "installSdk": "Install SDK",
+        "frontend": "Frontend Integration (Phone/Email/OAuth)",
+        "frontendHint": "Frontend only needs clientId, do not expose Secret!",
+        "backend": "Backend M2M Authentication",
+        "backendHint": "Use Client Credentials flow for service-to-service calls",
+        "oauthCallback": "OAuth Callback Handling",
+        "webhookHandler": "Webhook Event Handling",
+        "webhookHint": "Receive real-time notifications for user registration, login, etc.",
+        "viewDocs": "View full API documentation →"
+    },
+    "language": {
+        "switch": "Switch Language",
+        "en": "English",
+        "zh": "中文"
+    },
+    "theme": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+    },
+    "redirectUri": {
+        "title": "Redirect URIs",
+        "noUrisConfigured": "No redirect URIs configured. Add at least one for OAuth to work.",
+        "httpsRequired": "Non-localhost URIs must use HTTPS",
+        "invalidUrl": "Invalid URL format",
+        "duplicate": "URI already exists",
+        "added": "Redirect URI added",
+        "removed": "Redirect URI removed",
+        "addError": "Failed to add URI",
+        "removeError": "Failed to remove URI",
+        "placeholder": "https://your-app.com/callback",
+        "hint": "OAuth callback URLs. Use http://localhost for development."
+    }
+}

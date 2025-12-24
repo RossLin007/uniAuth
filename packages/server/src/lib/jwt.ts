@@ -6,28 +6,52 @@ import type { JWTPayload, TokenPair } from '../types/index.js';
 // Encode the secret key
 const secret = new TextEncoder().encode(env.JWT_SECRET);
 
+// Issuer for JWT tokens (use FRONTEND_URL as the issuer base)
+const ISSUER = env.FRONTEND_URL?.replace(/:\d+$/, '') || 'https://auth.uniauth.com';
+
 /**
- * Generate access token
- * 生成访问令牌
+ * Options for token generation
+ * 令牌生成选项
  */
+export interface TokenOptions {
+    /** Client ID (audience) for the token */
+    clientId?: string;
+    /** Scopes for the token */
+    scope?: string;
+}
+
 /**
  * Generate access token
  * 生成访问令牌
+ * 
+ * @param user - User information
+ * @param options - Optional token generation options
  */
 export async function generateAccessToken(
-    user: { id: string; phone?: string | null; email?: string | null }
+    user: { id: string; phone?: string | null; email?: string | null } | { id: string },
+    options?: TokenOptions
 ): Promise<string> {
-    const payload: { phone?: string; email?: string } = {};
-    if (user.phone) payload.phone = user.phone;
-    if (user.email) payload.email = user.email;
+    const payload: Record<string, unknown> = {};
 
-    const jwt = await new jose.SignJWT(payload)
+    if ('phone' in user && user.phone) payload.phone = user.phone;
+    if ('email' in user && user.email) payload.email = user.email;
+    if (options?.scope) payload.scope = options.scope;
+
+    const builder = new jose.SignJWT(payload)
         .setProtectedHeader({ alg: 'HS256' })
         .setSubject(user.id)
+        .setIssuer(ISSUER)
         .setIssuedAt()
-        .setExpirationTime(env.JWT_ACCESS_TOKEN_EXPIRES_IN)
-        .sign(secret);
+        .setExpirationTime(env.JWT_ACCESS_TOKEN_EXPIRES_IN);
 
+    // Add audience if clientId is provided (for third-party apps)
+    if (options?.clientId) {
+        builder.setAudience(options.clientId);
+        // azp (authorized party) is set in payload for OAuth2 compliance
+        payload.azp = options.clientId;
+    }
+
+    const jwt = await builder.sign(secret);
     return jwt;
 }
 
@@ -50,13 +74,30 @@ export function hashToken(token: string): string {
 /**
  * Verify access token
  * 验证访问令牌
+ * 
+ * @param token - JWT access token
+ * @param expectedAudience - Optional expected audience (client_id) to validate
  */
-export async function verifyAccessToken(token: string): Promise<JWTPayload> {
-    const { payload } = await jose.jwtVerify(token, secret);
+export async function verifyAccessToken(
+    token: string,
+    expectedAudience?: string
+): Promise<JWTPayload> {
+    const options: jose.JWTVerifyOptions = {};
+
+    if (expectedAudience) {
+        options.audience = expectedAudience;
+    }
+
+    const { payload } = await jose.jwtVerify(token, secret, options);
 
     return {
         sub: payload.sub as string,
-        phone: payload.phone as string,
+        aud: payload.aud as string | undefined,
+        azp: payload.azp as string | undefined,
+        iss: payload.iss as string | undefined,
+        phone: payload.phone as string | undefined,
+        email: payload.email as string | undefined,
+        scope: payload.scope as string | undefined,
         iat: payload.iat as number,
         exp: payload.exp as number,
     };
@@ -65,11 +106,15 @@ export async function verifyAccessToken(token: string): Promise<JWTPayload> {
 /**
  * Generate token pair (access + refresh)
  * 生成令牌对（访问令牌 + 刷新令牌）
+ * 
+ * @param user - User information
+ * @param options - Optional token generation options
  */
 export async function generateTokenPair(
-    user: { id: string; phone?: string | null; email?: string | null }
+    user: { id: string; phone?: string | null; email?: string | null },
+    options?: TokenOptions
 ): Promise<TokenPair> {
-    const accessToken = await generateAccessToken(user);
+    const accessToken = await generateAccessToken(user, options);
     const refreshToken = generateRefreshToken();
 
     return {

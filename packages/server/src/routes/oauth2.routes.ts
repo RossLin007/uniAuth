@@ -34,23 +34,32 @@ const authorizeBodySchema = z.object({
     code_challenge_method: z.enum(['S256', 'plain']).optional(),
 });
 
-const tokenFormSchema = z.object({
-    grant_type: z.literal('authorization_code'),
-    client_id: z.string(),
-    client_secret: z.string().optional(), // Optional for public clients using PKCE
-    code: z.string(),
-    redirect_uri: z.string().url(),
-    // PKCE code_verifier
-    code_verifier: z.string().min(43).max(128).optional(),
-});
+const tokenRequestSchema = z.discriminatedUnion('grant_type', [
+    z.object({
+        grant_type: z.literal('authorization_code'),
+        client_id: z.string(),
+        client_secret: z.string().optional(),
+        code: z.string(),
+        redirect_uri: z.string().url(),
+        code_verifier: z.string().optional(),
+    }),
+    z.object({
+        grant_type: z.literal('client_credentials'),
+        client_id: z.string(),
+        client_secret: z.string(),
+        scope: z.string().optional(),
+    }),
+    z.object({
+        grant_type: z.literal('refresh_token'),
+        client_id: z.string(),
+        client_secret: z.string().optional(),
+        refresh_token: z.string(),
+    })
+]);
 
-const tokenJsonSchema = z.object({
-    grant_type: z.literal('authorization_code'),
-    client_id: z.string(),
-    client_secret: z.string().optional(),
-    code: z.string(),
-    redirect_uri: z.string().url(),
-    code_verifier: z.string().min(43).max(128).optional(),
+const introspectSchema = z.object({
+    token: z.string(),
+    token_type_hint: z.enum(['access_token', 'refresh_token']).optional(),
 });
 
 // ============================================
@@ -187,50 +196,61 @@ oauth2Router.post(
 oauth2Router.post(
     '/token',
     async (c) => {
-        // Try to parse as form or JSON
-        let data: z.infer<typeof tokenFormSchema>;
+        // Handle both JSON and Form Data with the same schema
+        let data: z.infer<typeof tokenRequestSchema>;
+        try {
+            const contentType = c.req.header('Content-Type') || '';
 
-        const contentType = c.req.header('Content-Type') || '';
-
-        if (contentType.includes('application/json')) {
-            const body = await c.req.json();
-            const result = tokenJsonSchema.safeParse(body);
-            if (!result.success) {
-                return c.json({
-                    error: 'invalid_request',
-                    error_description: 'Invalid request parameters'
-                }, 400);
+            if (contentType.includes('application/json')) {
+                const jsonBody = await c.req.json();
+                data = tokenRequestSchema.parse(jsonBody);
+            } else {
+                const body = await c.req.parseBody();
+                data = tokenRequestSchema.parse(body);
             }
-            data = result.data;
-        } else {
-            // Default to form-urlencoded
-            const formData = await c.req.parseBody();
-            const result = tokenFormSchema.safeParse(formData);
-            if (!result.success) {
-                return c.json({
-                    error: 'invalid_request',
-                    error_description: 'Invalid request parameters'
-                }, 400);
-            }
-            data = result.data;
+        } catch (e) {
+            logger.warn('Token request validation failed', { error: e });
+            return c.json({
+                error: 'invalid_request',
+                error_description: 'Invalid request parameters or format / 请求参数或格式无效'
+            }, 400);
         }
 
         try {
-            const tokenResponse = await oauth2Service.exchangeCode(
-                data.client_id,
-                data.client_secret || null,
-                data.code,
-                data.redirect_uri,
-                data.code_verifier
-            );
+            // Handle different grant types
+            if (data.grant_type === 'authorization_code') {
+                const tokenResponse = await oauth2Service.exchangeCode(
+                    data.client_id,
+                    data.client_secret || null,
+                    data.code,
+                    data.redirect_uri,
+                    data.code_verifier
+                );
+                return c.json(tokenResponse);
+            } else if (data.grant_type === 'client_credentials') {
+                const tokenResponse = await oauth2Service.issueClientCredentialsToken(
+                    data.client_id,
+                    data.client_secret,
+                    data.scope
+                );
+                return c.json(tokenResponse);
+            } else if (data.grant_type === 'refresh_token') {
+                // Reuse existing authService for refresh token but validation needed
+                // Currently authService.refreshToken only takes token string
+                // We should ideally move refresh logic to oauth2Service for third party
+                // or just call it here if it supports M2M refresh (usually M2M tokens don't have refresh tokens by default but if they do...)
+                // For now, let's stick to M2M implementation as priority.
+                return c.json({ error: 'unsupported_grant_type' }, 400);
+            }
 
-            // Return standard OAuth2 token response
-            return c.json(tokenResponse);
+            return c.json({ error: 'unsupported_grant_type' }, 400);
+
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'invalid_request';
 
             logger.warn('Token exchange failed', {
                 clientId: data.client_id,
+                grantType: data.grant_type,
                 error: errorMessage
             });
 
@@ -243,62 +263,93 @@ oauth2Router.post(
 );
 
 /**
- * GET /oauth2/userinfo
- * OIDC-compatible userinfo endpoint
- * 符合 OIDC 标准的用户信息端点
- */
-oauth2Router.get(
-    '/userinfo',
-    authMiddleware(),
-    async (c) => {
-        const user = c.get('user');
-
-        // Return standard OIDC claims
-        return c.json({
-            sub: user.id,
-            name: user.nickname,
-            preferred_username: user.nickname,
-            email: user.email,
-            email_verified: user.email_verified,
-            phone_number: user.phone,
-            phone_number_verified: user.phone_verified,
-            picture: user.avatar_url,
-            updated_at: user.updated_at
-        });
-    }
-);
-
-/**
- * POST /oauth2/revoke
- * Revoke tokens for a client (optional endpoint)
- * 撤销客户端令牌（可选端点）
+ * POST /oauth2/introspect
+ * RFC 7662 Token Introspection
+ * 令牌内省（资源服务器验证 Token）
  */
 oauth2Router.post(
-    '/revoke',
-    authMiddleware(),
-    zValidator('json', z.object({
-        client_id: z.string(),
-    })),
+    '/introspect',
     async (c) => {
-        const { client_id } = c.req.valid('json');
-        const user = c.get('user');
+        // Basic Auth or Post Body for Client Auth
+        let clientId: string | undefined;
+        let clientSecret: string | undefined;
 
-        await oauth2Service.revokeClientTokens(client_id, user.id);
+        // 1. Try Basic Auth
+        const authHeader = c.req.header('Authorization');
+        if (authHeader && authHeader.startsWith('Basic ')) {
+            const token = authHeader.split(' ')[1];
+            const decoded = Buffer.from(token, 'base64').toString().split(':');
+            clientId = decoded[0];
+            clientSecret = decoded[1];
+        }
 
-        return c.json({
-            success: true,
-            message: 'Tokens revoked'
-        });
+        // 2. Parse Body
+        let body: any = {};
+        try {
+            const contentType = c.req.header('Content-Type') || '';
+            if (contentType.includes('application/json')) {
+                body = await c.req.json();
+            } else {
+                body = await c.req.parseBody();
+            }
+        } catch (e) {
+            // Ignore parse error, body stays empty
+        }
+
+        const data = introspectSchema.safeParse(body);
+
+        if (!data.success) {
+            return c.json({ active: false }, 400);
+        }
+
+        // 3. Fallback to Body usage for client auth if not in header
+        if (!clientId && body['client_id']) clientId = body['client_id'] as string;
+        if (!clientSecret && body['client_secret']) clientSecret = body['client_secret'] as string;
+
+        if (!clientId || !clientSecret) {
+            return c.json({ active: false, error: 'unauthorized_client' }, 401);
+        }
+
+        try {
+            // Validate Resource Server Credentials
+            // Reusing issueClientCredentialsToken logic parts or creating new validation method
+            // For introspection, the caller is a resource server (which is also a client)
+            const tokenResponse = await oauth2Service.issueClientCredentialsToken(
+                clientId,
+                clientSecret
+                // No scope needed for validation check itself
+            );
+            // If this throws, credentials are invalid
+        } catch (e) {
+            return c.json({ active: false }, 401);
+        }
+
+        // Verify the token
+        try {
+            // Import verifyAccessToken locally to avoid circular dep if any
+            const { verifyAccessToken } = await import('../lib/jwt.js');
+            const payload = await verifyAccessToken(data.data.token);
+
+            // Return introspection response
+            return c.json({
+                active: true,
+                scope: payload.scope,
+                client_id: payload.azp || payload.aud, // azp is authorized party
+                username: payload.sub, // for M2M sub is client_id
+                token_type: 'Bearer',
+                exp: payload.exp,
+                iat: payload.iat,
+                iss: payload.iss,
+                sub: payload.sub,
+                aud: payload.aud
+            });
+        } catch (e) {
+            return c.json({ active: false });
+        }
     }
 );
 
-// ============================================
-// Helper Functions
-// ============================================
 
-/**
- * Get human-readable error description
- */
 function getErrorDescription(errorCode: string): string {
     const descriptions: Record<string, string> = {
         'invalid_client': 'Client authentication failed / 客户端认证失败',
@@ -307,6 +358,7 @@ function getErrorDescription(errorCode: string): string {
         'unauthorized_client': 'The client is not authorized / 客户端未获授权',
         'access_denied': 'Access denied / 访问被拒绝',
         'user_not_found': 'User not found / 用户不存在',
+        'invalid_scope': 'The requested scope is invalid / 请求的权限范围无效',
     };
 
     return descriptions[errorCode] || 'An error occurred / 发生错误';
