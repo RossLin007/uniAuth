@@ -670,7 +670,7 @@ export class AuthService {
         }
 
         // Get user info from provider
-        const oauthUserInfo = await getOAuthUserInfo(provider, oauthTokens.accessToken);
+        const oauthUserInfo = await getOAuthUserInfo(provider, oauthTokens.accessToken, undefined, oauthTokens.idToken);
         if (!oauthUserInfo) {
             return {
                 success: false,

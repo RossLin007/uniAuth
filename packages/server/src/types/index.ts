@@ -133,6 +133,8 @@ export interface OAuth2TokenResponse {
     token_type: 'Bearer';
     expires_in: number;
     refresh_token?: string;
+    id_token?: string; // OIDC ID Token
+    scope?: string;
 }
 
 // Audit log types
@@ -163,6 +165,26 @@ export interface JWTPayload {
     scope?: string;
     iat: number;
     exp: number;
+}
+
+/**
+ * ID Token Payload (OIDC)
+ * ID Token 载荷（OpenID Connect）
+ */
+export interface IDTokenPayload {
+    iss: string; // issuer
+    sub: string; // subject (user id)
+    aud: string; // audience (client_id)
+    exp: number; // expiration time
+    iat: number; // issued at
+    nonce?: string; // nonce for replay protection
+    auth_time?: number; // authentication time
+    email?: string;
+    email_verified?: boolean;
+    phone_number?: string;
+    phone_verified?: boolean;
+    name?: string;
+    picture?: string;
 }
 
 // API types
@@ -271,6 +293,7 @@ export interface PKCEChallenge {
 export interface AuthorizationCodeWithPKCE extends AuthorizationCode {
     code_challenge?: string;
     code_challenge_method?: 'S256' | 'plain';
+    nonce?: string; // OIDC nonce parameter
 }
 
 // Extended Application with security fields

@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { UniAuthOptions, AuthResult, SendCodeResult } from './types.js';
+import * as jose from 'jose';
+import { UniAuthOptions, AuthResult, SendCodeResult, OIDCDiscovery, UserInfo, IDTokenClaims, TokenResponse } from './types.js';
 
 export class UniAuthClient {
     private client: AxiosInstance;
@@ -21,7 +22,12 @@ export class UniAuthClient {
                 'X-Client-Secret': this.options.clientSecret,
             },
         });
+
+        // Cache for discovery document
+        this.discoveryCache = null;
     }
+
+    private discoveryCache: OIDCDiscovery | null = null;
 
     /**
      * Send phone verification code
@@ -236,23 +242,106 @@ export class UniAuthClient {
     }
 
     /**
-     * Verify ID Token (offline verification)
-     * 验证 ID Token (离线验证)
-     * Note: This requires the 'jose' library
+     * Get OIDC Discovery Document
+     * 获取 OIDC 发现文档
+     * 
+     * Fetches and caches the OpenID Connect discovery document
      */
-    async verifyIdToken(idToken: string): Promise<any> {
-        // This is a placeholder for fuller implementation using 'jose'
-        // In a real implementation, we would fetch JWKS and verify the signature
-        // For now, we'll implement a basic online verification via userinfo
+    async getDiscovery(): Promise<OIDCDiscovery> {
+        // Return cached version if available
+        if (this.discoveryCache) {
+            return this.discoveryCache;
+        }
+
         try {
-            const response = await this.client.get('/api/v1/oauth2/userinfo', {
+            const response = await axios.get<OIDCDiscovery>(
+                `${this.options.baseUrl}/.well-known/openid-configuration`,
+                { timeout: this.options.timeout }
+            );
+
+            this.discoveryCache = response.data;
+            return response.data;
+        } catch (error) {
+            throw new Error(`Failed to fetch OIDC discovery: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    /**
+     * Get UserInfo
+     * 获取用户信息
+     * 
+     * Fetches user profile information using an access token
+     */
+    async getUserInfo(accessToken: string): Promise<UserInfo> {
+        try {
+            const response = await this.client.get<UserInfo>('/api/v1/oauth2/userinfo', {
                 headers: {
-                    Authorization: `Bearer ${idToken}`, // Usually access token, but some providers allow id_token
+                    Authorization: `Bearer ${accessToken}`,
                 },
             });
             return response.data;
         } catch (error) {
-            return this.handleError(error);
+            if (axios.isAxiosError(error) && error.response) {
+                throw new Error(`UserInfo request failed: ${error.response.data?.error || error.message}`);
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Validate ID Token
+     * 验证 ID Token
+     * 
+     * Validates an OIDC ID Token (JWT) using HMAC-based signature verification.
+     * This performs offline validation of the token's signature, expiration, and claims.
+     * 
+     * @param idToken - The ID Token (JWT) to validate
+     * @param options - Validation options
+     * @returns Decoded and validated token claims
+     */
+    async validateIdToken(
+        idToken: string,
+        options?: {
+            nonce?: string;
+            maxAge?: number; // Maximum age in seconds
+        }
+    ): Promise<IDTokenClaims> {
+        if (!this.options.clientSecret) {
+            throw new Error('Client secret is required for ID token validation');
+        }
+
+        try {
+            // Encode the secret as required by jose
+            const secret = new TextEncoder().encode(this.options.clientSecret);
+
+            // Verify the JWT signature and decode
+            const { payload } = await jose.jwtVerify(idToken, secret, {
+                issuer: this.options.baseUrl?.replace(/:\d+$/, ''),
+                audience: this.options.clientId,
+            });
+
+            // Additional validations
+            const claims = payload as IDTokenClaims;
+
+            // Verify nonce if provided
+            if (options?.nonce && claims.nonce !== options.nonce) {
+                throw new Error('Nonce mismatch');
+            }
+
+            // Verify max age if provided
+            if (options?.maxAge && claims.auth_time) {
+                const now = Math.floor(Date.now() / 1000);
+                if (now - claims.auth_time > options.maxAge) {
+                    throw new Error('Token is too old');
+                }
+            }
+
+            return claims;
+        } catch (error) {
+            if (error instanceof Error) {
+                throw new Error(`ID token validation failed: ${error.message}`);
+            }
+            throw new Error('ID token validation failed');
         }
     }
 
@@ -266,6 +355,7 @@ export class UniAuthClient {
             access_token: data.data?.access_token,
             refresh_token: data.data?.refresh_token,
             expires_in: data.data?.expires_in,
+            id_token: data.data?.id_token, // OIDC ID Token
         };
     }
 

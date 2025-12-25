@@ -14,7 +14,9 @@
         "copied": "已复制到剪贴板！",
         "success": "成功",
         "error": "错误",
-        "warning": "警告"
+        "warning": "警告",
+        "actions": "操作",
+        "confirmDelete": "确定要删除吗？此操作无法撤销。"
     },
     "auth": {
         "login": "登录",
@@ -63,7 +65,11 @@
             "spa": "单页应用",
             "native": "原生移动应用",
             "m2m": "机器对机器"
-        }
+        },
+        "homepageUrl": "主页 URL",
+        "logoUrl": "Logo URL",
+        "updateApp": "更新应用",
+        "appUpdated": "应用更新成功！"
     },
     "webhook": {
         "title": "Webhooks",
@@ -72,7 +78,11 @@
         "events": "事件",
         "addWebhook": "添加 Webhook",
         "testWebhook": "测试",
-        "deliveries": "投递记录"
+        "deliveries": "投递记录",
+        "noDeliveries": "暂无投递记录。",
+        "status": "状态",
+        "code": "状态码",
+        "time": "时间"
     },
     "integration": {
         "title": "集成指南",
@@ -108,5 +118,57 @@
         "removeError": "删除失败",
         "placeholder": "https://your-app.com/callback",
         "hint": "OAuth 回调 URL。开发环境可使用 http://localhost"
+    },
+    "claims": {
+        "title": "自定义 Claims",
+        "description": "配置要包含在 ID Token 中的自定义声明。",
+        "addClaim": "添加 Claim",
+        "noClaims": "暂未配置自定义 Claims。",
+        "name": "Claim 名称",
+        "source": "来源",
+        "transform": "转换",
+        "loadError": "加载 Claims 失败",
+        "createSuccess": "Claim 创建成功",
+        "updateSuccess": "Claim 更新成功",
+        "saveError": "保存 Claim 失败",
+        "deleteSuccess": "Claim 删除成功",
+        "deleteError": "删除 Claim 失败",
+        "editClaim": "编辑自定义 Claim",
+        "createClaim": "创建自定义 Claim",
+        "modalDescription": "定义 Claim 值的来源。",
+        "attributeName": "用户属性字段",
+        "staticValue": "静态值",
+        "expression": "计算表达式",
+        "requiredScope": "所需作用域（可选）",
+        "transformFunction": "转换函数"
+    },
+    "branding": {
+        "title": "品牌定制",
+        "description": "自定义您的登录页面外观。",
+        "images": "图片与 Logo",
+        "logoUrl": "Logo 链接",
+        "faviconUrl": "Favicon 链接",
+        "colors": "配色方案",
+        "primaryColor": "主色调",
+        "secondaryColor": "辅助色",
+        "backgroundColor": "背景色",
+        "textColor": "文字颜色",
+        "textContent": "文字内容",
+        "loginTitle": "登录标题",
+        "loginTitlePlaceholder": "欢迎来到我的应用",
+        "loginSubtitle": "登录副标题",
+        "loginSubtitlePlaceholder": "登录以继续",
+        "footerText": "页脚文字",
+        "options": "选项",
+        "showSocialLogin": "显示社交登录按钮",
+        "showPoweredBy": "显示 'Powered by UniAuth'",
+        "showPreview": "显示预览",
+        "hidePreview": "隐藏预览",
+        "reset": "重置为默认",
+        "resetConfirm": "确定要将品牌设置重置为默认吗？",
+        "saveSuccess": "品牌设置保存成功",
+        "saveError": "保存品牌设置失败",
+        "resetSuccess": "品牌设置已重置",
+        "resetError": "重置品牌设置失败"
     }
 }

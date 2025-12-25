@@ -8,6 +8,8 @@ export interface App {
     owner_id: string;
     redirect_uris?: string[];
     description?: string;
+    homepage_url?: string;
+    logo_url?: string;
 }
 
 export interface CreateAppRequest {
@@ -20,6 +22,8 @@ export interface UpdateAppRequest {
     name?: string;
     description?: string;
     redirect_uris?: string[];
+    homepage_url?: string;
+    logo_url?: string;
 }
 
 export interface Webhook {
@@ -42,11 +46,37 @@ export interface UpdateWebhookRequest {
     is_active?: boolean;
 }
 
+export interface WebhookDelivery {
+    id: string;
+    webhook_id: string;
+    event: string;
+    status: 'pending' | 'success' | 'failed';
+    response_status?: number;
+    created_at: string;
+}
+
 export interface ApiResponse<T> {
     success: boolean;
     data: T;
     message?: string;
 }
+
+export interface CustomClaim {
+    id: string;
+    application_id: string;
+    claim_name: string;
+    claim_source: 'user_attribute' | 'static' | 'computed';
+    source_field?: string;
+    static_value?: string;
+    computed_expression?: string;
+    transform_function?: 'none' | 'uppercase' | 'lowercase' | 'hash_sha256' | 'base64_encode' | 'json_stringify';
+    required_scope?: string;
+    enabled: boolean;
+    description?: string;
+}
+
+export type CreateClaimRequest = Omit<CustomClaim, 'id' | 'application_id'>;
+export type UpdateClaimRequest = Partial<CreateClaimRequest>;
 
 const API_BASE = '/api/v1/developer';
 
@@ -113,5 +143,70 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
     }),
-    getWebhookDeliveries: (clientId: string) => fetchWithAuth<Array<{ id: string; status: string; created_at: string }>>(`/apps/${clientId}/webhooks/deliveries`),
+    getWebhookDeliveries: (clientId: string) => fetchWithAuth<WebhookDelivery[]>(`/apps/${clientId}/webhooks/deliveries`),
+
+    // Custom Claims
+    getClaims: (clientId: string) => fetchWithAuth<CustomClaim[]>(`/apps/${clientId}/claims`),
+    createClaim: (clientId: string, data: CreateClaimRequest) => fetchWithAuth<CustomClaim>(`/apps/${clientId}/claims`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+    updateClaim: (clientId: string, claimId: string, data: UpdateClaimRequest) => fetchWithAuth<CustomClaim>(`/apps/${clientId}/claims/${claimId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    }),
+    deleteClaim: (clientId: string, claimId: string) => fetchWithAuth<void>(`/apps/${clientId}/claims/${claimId}`, {
+        method: 'DELETE',
+    }),
+
+    // Branding
+    getBranding: (clientId: string) => fetchWithAuth<BrandingConfig>(`/apps/${clientId}/branding`),
+    updateBranding: (clientId: string, data: UpdateBrandingRequest) => fetchWithAuth<BrandingConfig>(`/apps/${clientId}/branding`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }),
+    deleteBranding: (clientId: string) => fetchWithAuth<void>(`/apps/${clientId}/branding`, {
+        method: 'DELETE',
+    }),
 };
+
+// Branding types
+export interface BrandingConfig {
+    logo_url: string | null;
+    favicon_url: string | null;
+    background_image_url: string | null;
+    primary_color: string;
+    secondary_color: string;
+    background_color: string;
+    text_color: string;
+    card_color: string;
+    error_color: string;
+    font_family: string;
+    custom_css: string | null;
+    login_title: string | null;
+    login_subtitle: string | null;
+    footer_text: string | null;
+    show_social_login: boolean;
+    show_powered_by: boolean;
+    default_locale: string;
+}
+
+export interface UpdateBrandingRequest {
+    logo_url?: string | null;
+    favicon_url?: string | null;
+    background_image_url?: string | null;
+    primary_color?: string;
+    secondary_color?: string;
+    background_color?: string;
+    text_color?: string;
+    card_color?: string;
+    error_color?: string;
+    font_family?: string;
+    custom_css?: string | null;
+    login_title?: string | null;
+    login_subtitle?: string | null;
+    footer_text?: string | null;
+    show_social_login?: boolean;
+    show_powered_by?: boolean;
+    default_locale?: string;
+}

@@ -82,12 +82,45 @@ cat packages/server/migrations/001_initial_schema.sql
 
 ### Run / 运行
 
-```bash
-# Development mode
-pnpm dev
+#### 启动所有服务 (推荐)
 
-# Production build
+```bash
+# 一键启动所有开发服务
+npm run dev:all
+
+# 停止所有服务
+npm run stop:all
+```
+
+#### 服务地址
+
+| 服务 | 端口 | 地址 | 描述 |
+|------|------|------|------|
+| 🔧 **API Server** | 3000 | http://localhost:3000 | 后端 API 服务 |
+| 🌐 **Web Frontend** | 5173 | http://localhost:5173 | 用户登录页面 |
+| 👨‍💻 **Developer Console** | 5174 | http://localhost:5174 | 开发者控制台 |
+| 📚 **API Docs** | 3000 | http://localhost:3000/docs | Swagger 文档 |
+
+#### 单独启动服务
+
+```bash
+# 只启动 API 服务
+npm run dev
+
+# 只启动 Web 前端
+npm run dev:web
+
+# 只启动开发者控制台
+npm run dev:console
+```
+
+#### 生产构建
+
+```bash
+# 构建所有包
 pnpm build
+
+# 启动生产服务
 pnpm start
 ```
 

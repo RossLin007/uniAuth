@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { getSupabase, TABLES } from '../lib/supabase.js';
-import { generateAccessToken, generateRefreshToken } from '../lib/jwt.js';
+import { generateAccessToken, generateRefreshToken, generateIdToken } from '../lib/jwt.js';
 import { verifyClientSecret, verifyCodeChallenge } from '../lib/crypto.js';
 import { authService } from './auth.service.js';
 import { oauth2Logger as logger } from '../lib/logger.js';
@@ -76,6 +76,7 @@ export class OAuth2Service {
      * @param scope - Requested scopes (optional)
      * @param codeChallenge - PKCE code challenge (optional)
      * @param codeChallengeMethod - PKCE method: 'S256' or 'plain' (optional)
+     * @param nonce - OIDC nonce for replay protection (optional)
      */
     async createAuthorizationCode(
         userId: string,
@@ -83,7 +84,8 @@ export class OAuth2Service {
         redirectUri: string,
         scope?: string,
         codeChallenge?: string,
-        codeChallengeMethod?: 'S256' | 'plain'
+        codeChallengeMethod?: 'S256' | 'plain',
+        nonce?: string
     ): Promise<string> {
         const code = nanoid(32); // 32 chars random code
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -95,6 +97,7 @@ export class OAuth2Service {
             redirect_uri: redirectUri,
             scope,
             expires_at: expiresAt.toISOString(),
+            nonce: nonce || null,
         };
 
         // Add PKCE fields if provided
@@ -256,8 +259,20 @@ export class OAuth2Service {
             throw new Error('user_not_found');
         }
 
-        const accessToken = await generateAccessToken(user);
-        const refreshToken = await generateRefreshToken();
+        const accessToken = await generateAccessToken(user, {
+            clientId: clientId,
+            scope: authCode.scope || undefined
+        });
+        const refreshToken = generateRefreshToken();
+
+        // Generate ID Token (OIDC) with custom claims support
+        const idToken = await generateIdToken(user, {
+            clientId: clientId,
+            applicationId: app.id, // For custom claims lookup
+            scopes: authCode.scope?.split(' ') || [],
+            nonce: authCode.nonce || undefined,
+            authTime: Math.floor(new Date(authCode.created_at).getTime() / 1000)
+        });
 
         // Store refresh token with OAuth2 client info
         await authService.storeRefreshToken(user.id, refreshToken, {
@@ -279,6 +294,8 @@ export class OAuth2Service {
             token_type: 'Bearer',
             expires_in: expiresIn,
             refresh_token: refreshToken,
+            id_token: idToken, // OIDC ID Token
+            scope: authCode.scope || undefined,
         };
     }
 

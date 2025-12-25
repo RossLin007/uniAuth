@@ -68,6 +68,14 @@ const envSchema = z.object({
     WECHAT_APP_SECRET: z.string().optional(),
     WECHAT_REDIRECT_URI: z.string().optional(),
 
+    // OAuth - Apple (optional)
+    APPLE_TEAM_ID: z.string().optional(),  // App Team ID
+    APPLE_KEY_ID: z.string().optional(),   // Key ID from Apple Developer
+    APPLE_CLIENT_ID: z.string().optional(), // Bundle ID or Service ID
+    APPLE_REDIRECT_URI: z.string().optional(),
+    // Private Key can be base64 string or pem
+    APPLE_PRIVATE_KEY: z.string().optional(),
+
     // Redis (optional - for caching and rate limiting)
     REDIS_URL: z.string().optional(),
 
@@ -89,6 +97,10 @@ const envSchema = z.object({
 
     // Metrics (optional)
     METRICS_TOKEN: z.string().optional(),
+
+    // WebAuthn / Passkey
+    RP_ID: z.string().optional(), // Relying Party ID (domain)
+    RP_ORIGIN: z.string().optional(), // Relying Party Origin (full URL)
 
     // Security
     RATE_LIMIT_ENABLED: z.coerce.boolean().default(true),

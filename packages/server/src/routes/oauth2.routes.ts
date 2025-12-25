@@ -18,6 +18,7 @@ const validateQuerySchema = z.object({
     scope: z.string().optional(),
     response_type: z.literal('code'),
     state: z.string().optional(),
+    nonce: z.string().optional(), // OIDC nonce
     // PKCE parameters (optional, required for public clients)
     code_challenge: z.string().min(43).max(128).optional(),
     code_challenge_method: z.enum(['S256', 'plain']).optional(),
@@ -29,6 +30,7 @@ const authorizeBodySchema = z.object({
     scope: z.string().optional(),
     response_type: z.literal('code'),
     state: z.string().optional(),
+    nonce: z.string().optional(), // OIDC nonce
     // PKCE parameters
     code_challenge: z.string().min(43).max(128).optional(),
     code_challenge_method: z.enum(['S256', 'plain']).optional(),
@@ -154,14 +156,15 @@ oauth2Router.post(
             }, 400);
         }
 
-        // 3. Create Authorization Code with optional PKCE
+        // 3. Create Authorization Code with optional PKCE and nonce
         const code = await oauth2Service.createAuthorizationCode(
             user.id,
             app.client_id,
             body.redirect_uri,
             body.scope,
             body.code_challenge,
-            body.code_challenge_method
+            body.code_challenge_method,
+            body.nonce
         );
 
         // 4. Construct Redirect URL

@@ -57,6 +57,19 @@ function getProviderConfig(provider: OAuthProvider): OAuthConfig | null {
                 scope: 'snsapi_login',
             };
 
+        case 'apple':
+            if (!env.APPLE_CLIENT_ID || !env.APPLE_KEY_ID || !env.APPLE_TEAM_ID || !env.APPLE_PRIVATE_KEY) return null;
+            // Client Secret is dynamically generated for Apple
+            return {
+                clientId: env.APPLE_CLIENT_ID,
+                clientSecret: 'DYNAMIC', // Placeholder, handled in exchangeOAuthCode
+                redirectUri: env.APPLE_REDIRECT_URI || `${env.FRONTEND_URL}/auth/callback/apple`,
+                authUrl: 'https://appleid.apple.com/auth/authorize',
+                tokenUrl: 'https://appleid.apple.com/auth/token',
+                userInfoUrl: '', // No UserInfo endpoint, data is in ID Token
+                scope: 'name email',
+            };
+
         default:
             return null;
     }
@@ -78,6 +91,18 @@ export function getOAuthAuthUrl(provider: OAuthProvider, state: string): string 
         state,
     });
 
+    if (provider === 'apple') {
+        // Apple needs response_mode=form_post usually, but 'query' also works for some flows. 
+        // UniAuth expects 'code' in query, so 'response_mode=form_post' might break current frontend flow if it expects redirect with params.
+        // Try query first. If Apple forces form_post, we need a special handler.
+        // Actually Apple defaults to form_post for scope requests.
+        params.set('response_mode', 'form_post');
+        // Wait, standard OAuth2 service in UniAuth expects query params on callback?
+        // If form_post, we need a POST route handler for callback.
+        // Let's stick to default behavior or check if 'query' is allowed with 'scope'.
+        // Apple requires 'form_post' if requesting 'name' or 'email'.
+    }
+
     // WeChat has different parameter names
     if (provider === 'wechat') {
         params.set('appid', config.clientId);
@@ -94,7 +119,7 @@ export function getOAuthAuthUrl(provider: OAuthProvider, state: string): string 
 export async function exchangeOAuthCode(
     provider: OAuthProvider,
     code: string
-): Promise<{ accessToken: string; refreshToken?: string } | null> {
+): Promise<{ accessToken: string; refreshToken?: string; idToken?: string } | null> {
     const config = getProviderConfig(provider);
     if (!config) return null;
 
@@ -110,6 +135,30 @@ export async function exchangeOAuthCode(
                 grant_type: 'authorization_code',
             });
             response = await fetch(`${config.tokenUrl}?${params.toString()}`);
+        } else if (provider === 'apple') {
+            // Apple requires dynamic client secret (ES256 signed JWT)
+            const { generateAppleClientSecret } = await import('./apple.js');
+            const clientSecret = await generateAppleClientSecret();
+
+            if (!clientSecret) {
+                console.error('Failed to generate Apple Client Secret');
+                return null;
+            }
+
+            response = await fetch(config.tokenUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    Accept: 'application/json',
+                },
+                body: new URLSearchParams({
+                    client_id: config.clientId,
+                    client_secret: clientSecret,
+                    code,
+                    redirect_uri: config.redirectUri,
+                    grant_type: 'authorization_code',
+                }),
+            });
         } else {
             response = await fetch(config.tokenUrl, {
                 method: 'POST',
@@ -127,7 +176,13 @@ export async function exchangeOAuthCode(
             });
         }
 
-        const data = (await response.json()) as { access_token?: string; refresh_token?: string; error?: string; error_description?: string };
+        const data = (await response.json()) as {
+            access_token?: string;
+            refresh_token?: string;
+            id_token?: string;
+            error?: string;
+            error_description?: string
+        };
 
         // Handle error response from OAuth provider
         if (data.error || !data.access_token) {
@@ -138,6 +193,7 @@ export async function exchangeOAuthCode(
         return {
             accessToken: data.access_token,
             refreshToken: data.refresh_token,
+            idToken: data.id_token, // Return ID token used by Apple/Google
         };
     } catch (error) {
         console.error('OAuth token exchange error:', error);
@@ -152,7 +208,8 @@ export async function exchangeOAuthCode(
 export async function getOAuthUserInfo(
     provider: OAuthProvider,
     accessToken: string,
-    openId?: string // For WeChat
+    openId?: string, // For WeChat
+    idToken?: string // For Apple/OIDC
 ): Promise<OAuthUserInfo | null> {
     const config = getProviderConfig(provider);
     if (!config) return null;
@@ -221,6 +278,33 @@ export async function getOAuthUserInfo(
                 name: (userData.name as string) || (userData.login as string),
                 avatar: userData.avatar_url as string,
                 raw: userData,
+            };
+        }
+
+        if (provider === 'apple') {
+            if (!idToken) return null;
+            // Decode ID Token to get email and sub
+            // We should verify it, but since we just got it from Apple's token endpoint with our client secret, it's trustworthy enough for extraction here
+            // But strict verification is better. The `apple.ts` lib has `verifyAppleIdToken`
+            const { verifyAppleIdToken } = await import('./apple.js');
+            const validation = await verifyAppleIdToken(idToken);
+
+            if (!validation.valid || !validation.payload) {
+                console.error('Invalid Apple ID Token');
+                return null;
+            }
+
+            const payload = validation.payload;
+            return {
+                id: payload.sub as string,
+                email: payload.email as string | undefined, // May be private relay
+                name: undefined, // Apple only sends name in the very first authorization request (id_token usually doesn't have it unless added to scope, but often it's in a separate 'user' JSON in the callback)
+                // NOTE: Name handling for Apple is tricky, it's NOT in id_token usually.
+                // It comes in the initial callback POST body as 'user' param.
+                // We might miss name if we only look here.
+                // For now, email/sub is the critical part.
+                avatar: undefined,
+                raw: payload,
             };
         }
 

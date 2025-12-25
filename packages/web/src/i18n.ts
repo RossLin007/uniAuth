@@ -235,6 +235,27 @@ const resources = {
                 confirmButton: 'Delete My Account',
                 failed: 'Failed to delete account',
             },
+
+            // Passkey
+            passkey: {
+                title: 'Passkeys',
+                description: 'Use Face ID, fingerprint, or your device PIN for passwordless login.',
+                addPasskey: 'Add Passkey',
+                noPasskeys: 'No passkeys registered yet',
+                defaultDeviceName: 'My Passkey',
+                deviceNamePlaceholder: 'e.g., MacBook Pro, iPhone',
+                register: 'Register',
+                registering: 'Registering...',
+                registerSuccess: 'Passkey registered successfully',
+                registerError: 'Failed to register passkey',
+                deleteConfirm: 'Are you sure you want to delete this passkey?',
+                deleteSuccess: 'Passkey deleted',
+                deleteError: 'Failed to delete passkey',
+                notSupported: 'Passkeys are not supported on this device or browser.',
+                unnamed: 'Unnamed Passkey',
+                addedOn: 'Added',
+                lastUsed: 'Last used',
+            },
         },
     },
     zh: {
@@ -469,10 +490,30 @@ const resources = {
                 confirmButton: '删除我的账户',
                 failed: '账户删除失败',
             },
+
+            // Passkey
+            passkey: {
+                title: '通行密钥',
+                description: '使用 Face ID、指纹或设备 PIN 进行无密码登录。',
+                addPasskey: '添加通行密钥',
+                noPasskeys: '尚未注册通行密钥',
+                defaultDeviceName: '我的通行密钥',
+                deviceNamePlaceholder: '例如：MacBook Pro、iPhone',
+                register: '注册',
+                registering: '注册中...',
+                registerSuccess: '通行密钥注册成功',
+                registerError: '通行密钥注册失败',
+                deleteConfirm: '确定要删除此通行密钥吗？',
+                deleteSuccess: '通行密钥已删除',
+                deleteError: '删除通行密钥失败',
+                notSupported: '当前设备或浏览器不支持通行密钥。',
+                unnamed: '未命名通行密钥',
+                addedOn: '添加于',
+                lastUsed: '最后使用',
+            },
         },
     },
 };
-
 i18n
     .use(LanguageDetector)
     .use(initReactI18next)

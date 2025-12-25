@@ -59,52 +59,52 @@ UniAuth 目前已实现：
 
 | 功能 | 优先级 | 当前状态 | 目标阶段 |
 | :--- | :---: | :---: | :---: |
-| 应用注册 (client_id/client_secret) | P0 | ✅ 已有 | - |
-| 应用类型区分 (Web/SPA/Native/M2M) | P0 | ❌ | Phase 1 |
-| Redirect URI 白名单 | P0 | ✅ 已有 | - |
-| 应用 Logo/描述 | P1 | ✅ 已有 | - |
-| 受信任应用标记 (跳过授权页) | P1 | ✅ 已有 | - |
-| 应用 Secret 轮换 | P2 | ❌ | Phase 3 |
-| 应用作用域 (Scopes) 定义 | P1 | ⚠️ 部分 | Phase 2 |
+| 应用注册 (client_id/client_secret) | P0 | ✅ 已实现 | - |
+| 应用类型区分 (Web/SPA/Native/M2M) | P0 | ✅ 已实现 | Phase 1 |
+| Redirect URI 白名单 | P0 | ✅ 已实现 | - |
+| 应用 Logo/描述 | P1 | ✅ 已实现 | - |
+| 受信任应用标记 (跳过授权页) | P1 | ✅ 已实现 | - |
+| 应用 Secret 轮换 | P2 | ✅ 已实现 | Phase 3 |
+| 应用作用域 (Scopes) 定义 | P1 | ✅ 已实现 | Phase 2 |
 
 ### 2.2 认证协议模块
 
 | 功能 | 优先级 | 当前状态 | 目标阶段 |
 | :--- | :---: | :---: | :---: |
-| OAuth 2.0 Authorization Code | P0 | ✅ 已有 | - |
-| OAuth 2.0 + PKCE | P0 | ✅ 已有 | - |
-| **嵌入式登录 API (Trusted Client)** | **P0** | **❌** | **Phase 1** |
-| Client Credentials (M2M) | P1 | ❌ | Phase 2 |
-| OpenID Connect (OIDC) 完整实现 | P2 | ⚠️ 部分 | Phase 3 |
+| OAuth 2.0 Authorization Code | P0 | ✅ 已实现 | - |
+| OAuth 2.0 + PKCE | P0 | ✅ 已实现 | - |
+| **嵌入式登录 API (Trusted Client)** | **P0** | ✅ 已实现 | Phase 1 |
+| Client Credentials (M2M) | P1 | ✅ 已实现 | Phase 2 |
+| OpenID Connect (OIDC) 完整实现 | P2 | ✅ 已实现 | Phase 3 |
 
 ### 2.3 令牌管理模块
 
 | 功能 | 优先级 | 当前状态 | 目标阶段 |
 | :--- | :---: | :---: | :---: |
-| Access Token (JWT) | P0 | ✅ 已有 | - |
-| Refresh Token | P0 | ✅ 已有 | - |
-| Token 中包含 `aud` (audience) | P0 | ❌ | Phase 1 |
-| Token 中包含 `azp` (authorized party) | P1 | ❌ | Phase 1 |
-| ID Token (OIDC) | P2 | ⚠️ 部分 | Phase 3 |
-| 自定义 Claims | P3 | ❌ | Phase 4 |
+| Access Token (JWT) | P0 | ✅ 已实现 | - |
+| Refresh Token | P0 | ✅ 已实现 | - |
+| Token 中包含 `aud` (audience) | P0 | ✅ 已实现 | Phase 1 |
+| Token 中包含 `azp` (authorized party) | P1 | ✅ 已实现 | Phase 1 |
+| ID Token (OIDC) with RS256/JWKS | P2 | ✅ 已实现 | Phase 3 |
+| 自定义 Claims | P3 | ✅ 已实现 | Phase 4 |
 
 ### 2.4 开发者体验模块
 
 | 功能 | 优先级 | 当前状态 | 目标阶段 |
 | :--- | :---: | :---: | :---: |
-| API 文档 (OpenAPI/Swagger) | P0 | ✅ 已有 | - |
-| **Node.js/TypeScript SDK** | **P0** | ⚠️ 文档 | **Phase 1** |
-| 开发者控制台 (自助管理应用) | P2 | ❌ | Phase 3 |
-| Webhooks (事件通知) | P2 | ❌ | Phase 3 |
+| API 文档 (OpenAPI/Swagger) | P0 | ✅ 已实现 | - |
+| **Node.js/TypeScript SDK** | **P0** | ✅ 已实现 | Phase 1 |
+| 开发者控制台 (自助管理应用) | P2 | ✅ 已实现 | Phase 3 |
+| Webhooks (事件通知) | P2 | ✅ 已实现 | Phase 3 |
 
 ### 2.5 安全与审计模块
 
 | 功能 | 优先级 | 当前状态 | 目标阶段 |
 | :--- | :---: | :---: | :---: |
-| 速率限制 | P0 | ✅ 已有 | - |
-| 人机验证 (Captcha) | P0 | ✅ 已有 | - |
-| 审计日志 | P0 | ✅ 已有 | - |
-| 应用级别审计 (区分来源) | P0 | ❌ | Phase 1 |
+| 速率限制 | P0 | ✅ 已实现 | - |
+| 人机验证 (Captcha) | P0 | ✅ 已实现 | - |
+| 审计日志 | P0 | ✅ 已实现 | - |
+| 应用级别审计 (区分来源) | P0 | ✅ 已实现 | Phase 1 |
 | IP 黑/白名单 | P2 | ❌ | Phase 3 |
 
 ---

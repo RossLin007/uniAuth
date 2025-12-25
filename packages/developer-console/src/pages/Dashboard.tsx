@@ -1,29 +1,22 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '@/lib/api';
+import { api, App } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Plus, Trash, RefreshCw, LogOut, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { Plus, Trash, RefreshCw, LogOut, Eye, EyeOff, Copy, Check, Edit2 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { WebhookManager } from '@/components/WebhookManager';
 import { IntegrationGuide } from '@/components/IntegrationGuide';
 import { RedirectUriManager } from '@/components/RedirectUriManager';
+import { CustomClaimsManager } from '@/components/CustomClaimsManager';
+import { BrandingSettings } from '@/components/BrandingSettings';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeSelector } from '@/components/ThemeSelector';
-
-interface App {
-    id: string;
-    name: string;
-    client_id: string;
-    client_secret: string;
-    app_type: string;
-    owner_id: string;
-    redirect_uris?: string[];
-}
+import { Modal } from '@/components/ui/Modal';
 
 // 错误处理辅助函数
 const getErrorMessage = (e: unknown, fallback: string): string => {
@@ -57,6 +50,16 @@ export default function Dashboard() {
     // Secret visibility
     const [showSecret, setShowSecret] = useState(false);
     const [copiedField, setCopiedField] = useState<string | null>(null);
+
+    // Edit App Modal State
+    const [editingApp, setEditingApp] = useState<App | null>(null);
+    const [editForm, setEditForm] = useState({
+        name: '',
+        description: '',
+        homepage_url: '',
+        logo_url: ''
+    });
+    const [updating, setUpdating] = useState(false);
 
     const fetchApps = useCallback(async () => {
         try {
@@ -150,6 +153,43 @@ export default function Dashboard() {
             fetchApps();
         } catch (e: any) {
             toast.error(e.message || t('common.error'));
+        }
+    };
+
+    // Edit App Logic
+    const openEditModal = (app: App) => {
+        setEditingApp(app);
+        setEditForm({
+            name: app.name,
+            description: app.description || '',
+            homepage_url: app.homepage_url || '',
+            logo_url: app.logo_url || ''
+        });
+    };
+
+    const handleUpdateApp = async () => {
+        if (!editingApp) return;
+        setUpdating(true);
+        try {
+            const res = await api.updateApp(editingApp.client_id, {
+                name: editForm.name,
+                description: editForm.description,
+                ...(editForm.homepage_url ? { homepage_url: editForm.homepage_url } : {}),
+                ...(editForm.logo_url ? { logo_url: editForm.logo_url } : {})
+            });
+
+            // Update local state
+            setApps(apps.map(a => a.id === editingApp.id ? { ...a, ...res.data } : a));
+            if (appDetails?.id === editingApp.id) {
+                setAppDetails({ ...appDetails, ...res.data });
+            }
+
+            toast.success(t('app.appUpdated'));
+            setEditingApp(null);
+        } catch (e: any) {
+            toast.error(e.message || t('common.error'));
+        } finally {
+            setUpdating(false);
         }
     };
 
@@ -250,7 +290,21 @@ export default function Dashboard() {
                         <Card key={app.id}>
                             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 pb-2">
                                 <div className="space-y-1">
-                                    <CardTitle className="text-xl">{app.name}</CardTitle>
+                                    <div className="flex items-center gap-2">
+                                        <CardTitle className="text-xl">{app.name}</CardTitle>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-6 w-6 p-0 text-slate-400 hover:text-blue-500"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditModal(app);
+                                            }}
+                                            title={t('common.edit')}
+                                        >
+                                            <Edit2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
                                     <CardDescription>
                                         <span className="badge badge-blue mr-2">{app.app_type.toUpperCase()}</span>
                                         <span className="font-mono text-xs">{app.client_id}</span>
@@ -267,6 +321,21 @@ export default function Dashboard() {
                             {expandedApp === app.client_id && appDetails && (
                                 <CardContent className="pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                                     <div className="space-y-6">
+                                        {/* Description & URLs (if present) */}
+                                        {(appDetails.description || appDetails.homepage_url) && (
+                                            <div className="grid gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                                {appDetails.description && <p>{appDetails.description}</p>}
+                                                {appDetails.homepage_url && (
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="font-semibold">{t('app.homepageUrl')}:</span>
+                                                        <a href={appDetails.homepage_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                                            {appDetails.homepage_url}
+                                                        </a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         {/* Client ID */}
                                         <div className="grid gap-1">
                                             <Label className="text-xs">{t('app.clientId')}</Label>
@@ -305,7 +374,7 @@ export default function Dashboard() {
                                                 >
                                                     {copiedField === 'client_secret' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                                 </Button>
-                                                <Button size="sm" variant="destructive" onClick={() => handleRotate(app.client_id)}>
+                                                <Button size="sm" variant="destructive" onClick={() => handleRotate(app.client_id)} title={t('app.rotateConfirm')}>
                                                     <RefreshCw className="h-4 w-4" />
                                                 </Button>
                                             </div>
@@ -325,6 +394,16 @@ export default function Dashboard() {
                                         {/* Webhooks */}
                                         <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
                                             <WebhookManager clientId={app.client_id} />
+                                        </div>
+
+                                        {/* Custom Claims */}
+                                        <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                                            <CustomClaimsManager clientId={app.client_id} />
+                                        </div>
+
+                                        {/* Branding Settings */}
+                                        <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                                            <BrandingSettings clientId={app.client_id} />
                                         </div>
 
                                         {/* Integration Guide */}
@@ -349,6 +428,59 @@ export default function Dashboard() {
                     ))}
                 </div>
             </div>
+
+            {/* Edit App Modal */}
+            <Modal
+                isOpen={!!editingApp}
+                onClose={() => setEditingApp(null)}
+                title={t('app.updateApp')}
+                description={t('dashboard.subtitle')}
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setEditingApp(null)} disabled={updating}>
+                            {t('common.cancel')}
+                        </Button>
+                        <Button variant="primary" onClick={handleUpdateApp} isLoading={updating}>
+                            {t('common.save')}
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="grid gap-2">
+                        <Label>{t('app.appName')}</Label>
+                        <Input
+                            value={editForm.name}
+                            onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>{t('app.description')}</Label>
+                        <Input
+                            value={editForm.description}
+                            onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>{t('app.homepageUrl')}</Label>
+                        <Input
+                            type="url"
+                            value={editForm.homepage_url}
+                            onChange={e => setEditForm({ ...editForm, homepage_url: e.target.value })}
+                            placeholder="https://..."
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>{t('app.logoUrl')}</Label>
+                        <Input
+                            type="url"
+                            value={editForm.logo_url}
+                            onChange={e => setEditForm({ ...editForm, logo_url: e.target.value })}
+                            placeholder="https://..."
+                        />
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

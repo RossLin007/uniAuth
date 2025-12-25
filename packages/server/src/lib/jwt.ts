@@ -72,6 +72,97 @@ export function hashToken(token: string): string {
 }
 
 /**
+ * Options for ID Token generation
+ * ID Token 生成选项
+ */
+export interface IdTokenOptions {
+    /** Client ID (audience) for the token */
+    clientId: string;
+    /** Application ID for fetching custom claims */
+    applicationId?: string;
+    /** Requested scopes for claim filtering */
+    scopes?: string[];
+    /** Nonce for replay attack prevention */
+    nonce?: string;
+    /** Time when authentication occurred */
+    authTime?: number;
+}
+
+/**
+ * Generate ID Token (OIDC)
+ * 生成 ID Token（OpenID Connect）
+ * 
+ * @param user - User information with profile data
+ * @param options - ID Token generation options
+ */
+export async function generateIdToken(
+    user: {
+        id: string;
+        email?: string | null;
+        phone?: string | null;
+        email_verified?: boolean;
+        phone_verified?: boolean;
+        name?: string | null;
+        avatar_url?: string | null;
+    },
+    options: IdTokenOptions
+): Promise<string> {
+    // Import JWKS signing function
+    const { signJWT } = await import('./jwks.js');
+
+    const payload: Record<string, unknown> = {};
+
+    // Optional OIDC profile claims
+    if (user.email) payload.email = user.email;
+    if (user.email_verified !== undefined) payload.email_verified = user.email_verified;
+    if (user.phone) payload.phone_number = user.phone;
+    if (user.phone_verified !== undefined) payload.phone_verified = user.phone_verified;
+    if (user.name) payload.name = user.name;
+    if (user.avatar_url) payload.picture = user.avatar_url;
+
+    // Add nonce for replay protection
+    if (options.nonce) {
+        payload.nonce = options.nonce;
+    }
+
+    // Add auth_time if provided
+    if (options.authTime) {
+        payload.auth_time = options.authTime;
+    }
+
+    // Add custom claims if applicationId is provided
+    if (options.applicationId) {
+        try {
+            const { claimsService } = await import('../services/claims.service.js');
+            const customClaims = await claimsService.evaluateClaims(
+                user as any,
+                options.applicationId,
+                options.scopes || []
+            );
+            // Merge custom claims (custom claims can't override standard claims)
+            Object.entries(customClaims).forEach(([key, value]) => {
+                if (!(key in payload)) {
+                    payload[key] = value;
+                }
+            });
+        } catch (error) {
+            // Log but don't fail token generation
+            console.warn('Failed to load custom claims', error);
+        }
+    }
+
+    // Sign with RS256 using JWKS private key
+    const idToken = await signJWT(payload, {
+        issuer: ISSUER,
+        audience: options.clientId,
+        subject: user.id,
+        expiresIn: '24h', // ID tokens are long-lived
+    });
+
+    return idToken;
+}
+
+/**
  * Verify access token
  * 验证访问令牌
  * 

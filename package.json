@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "pnpm -F @uniauth/server dev",
     "dev:web": "pnpm -F @uniauth/web dev",
-    "dev:all": "pnpm -r --parallel dev",
+    "dev:console": "pnpm -F developer-console dev",
+    "dev:all": "./scripts/dev.sh",
+    "stop:all": "./scripts/dev.sh stop",
     "build": "pnpm -r build",
     "build:web": "pnpm -F @uniauth/web build",
     "build:server": "pnpm -F @uniauth/server build",
@@ -35,5 +37,11 @@
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^18.3.14",
+      "@types/react-dom": "^18.3.2"
+    }
   }
 }

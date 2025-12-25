@@ -418,88 +418,101 @@ export class UserService {
             scopes: string[];
         }>;
     }> {
-        // Get distinct applications that have refresh tokens for this user
-        const { data: tokens, error } = await this.supabase
-            .from(TABLES.REFRESH_TOKENS)
-            .select(`
-                created_at,
-                last_used_at,
-                scope,
-                application:applications!client_id (
-                    client_id,
-                    name,
-                    description,
-                    logo_url,
-                    homepage_url
-                )
-            `)
-            .eq('user_id', userId)
-            .eq('revoked', false)
-            .not('client_id', 'is', null)
-            .order('created_at', { ascending: false });
+        try {
+            // Step 1: Get distinct client_ids from refresh tokens for this user
+            const { data: tokens, error: tokensError } = await this.supabase
+                .from(TABLES.REFRESH_TOKENS)
+                .select('client_id, created_at, last_used_at, scope')
+                .eq('user_id', userId)
+                .eq('revoked', false)
+                .not('client_id', 'is', null)
+                .order('created_at', { ascending: false });
 
-        if (error) {
+            if (tokensError) {
+                console.error('Failed to get user tokens:', tokensError);
+                return { success: false, apps: [] };
+            }
+
+            if (!tokens || tokens.length === 0) {
+                return { success: true, apps: [] };
+            }
+
+            // Get unique client_ids
+            const clientIds = [...new Set(tokens.map(t => t.client_id).filter(Boolean))];
+
+            // Step 2: Get applications info for these client_ids
+            const { data: applications, error: appsError } = await this.supabase
+                .from(TABLES.APPLICATIONS)
+                .select('client_id, name, description, logo_url, homepage_url')
+                .in('client_id', clientIds);
+
+            if (appsError) {
+                console.error('Failed to get applications:', appsError);
+                return { success: false, apps: [] };
+            }
+
+            // Create a lookup map for applications
+            const appLookup = new Map(
+                (applications || []).map(app => [app.client_id, app])
+            );
+
+            // Group by client_id and aggregate
+            const appMap = new Map<string, {
+                clientId: string;
+                name: string;
+                description: string | null;
+                logoUrl: string | null;
+                homepageUrl: string | null;
+                authorizedAt: string;
+                lastUsedAt: string | null;
+                scopes: Set<string>;
+            }>();
+
+            for (const token of tokens) {
+                const clientId = token.client_id;
+                if (!clientId) continue;
+
+                const app = appLookup.get(clientId);
+                if (!app) continue;
+
+                if (!appMap.has(clientId)) {
+                    appMap.set(clientId, {
+                        clientId,
+                        name: app.name,
+                        description: app.description,
+                        logoUrl: app.logo_url,
+                        homepageUrl: app.homepage_url,
+                        authorizedAt: token.created_at,
+                        lastUsedAt: token.last_used_at,
+                        scopes: new Set(token.scope ? token.scope.split(' ') : []),
+                    });
+                } else {
+                    const existing = appMap.get(clientId)!;
+                    // Keep earliest authorization date
+                    if (new Date(token.created_at) < new Date(existing.authorizedAt)) {
+                        existing.authorizedAt = token.created_at;
+                    }
+                    // Keep latest usage date
+                    if (token.last_used_at && (!existing.lastUsedAt || new Date(token.last_used_at) > new Date(existing.lastUsedAt))) {
+                        existing.lastUsedAt = token.last_used_at;
+                    }
+                    // Merge scopes
+                    if (token.scope) {
+                        token.scope.split(' ').forEach((s: string) => existing.scopes.add(s));
+                    }
+                }
+            }
+
+            const apps = Array.from(appMap.values()).map(app => ({
+                ...app,
+                scopes: Array.from(app.scopes),
+            }));
+
+            return { success: true, apps };
+        } catch (error) {
             console.error('Failed to get authorized apps:', error);
             return { success: false, apps: [] };
         }
-
-        // Group by client_id and get the earliest authorization
-        const appMap = new Map<string, {
-            clientId: string;
-            name: string;
-            description: string | null;
-            logoUrl: string | null;
-            homepageUrl: string | null;
-            authorizedAt: string;
-            lastUsedAt: string | null;
-            scopes: Set<string>;
-        }>();
-
-        for (const token of tokens || []) {
-            const app = token.application as unknown as {
-                client_id: string;
-                name: string;
-                description: string | null;
-                logo_url: string | null;
-                homepage_url: string | null;
-            };
-
-            if (!app || !app.client_id) continue;
-
-            if (!appMap.has(app.client_id)) {
-                appMap.set(app.client_id, {
-                    clientId: app.client_id,
-                    name: app.name,
-                    description: app.description,
-                    logoUrl: app.logo_url,
-                    homepageUrl: app.homepage_url,
-                    authorizedAt: token.created_at,
-                    lastUsedAt: token.last_used_at,
-                    scopes: new Set(token.scope ? token.scope.split(' ') : []),
-                });
-            } else {
-                const existing = appMap.get(app.client_id)!;
-                // Keep earliest authorization date
-                if (new Date(token.created_at) < new Date(existing.authorizedAt)) {
-                    existing.authorizedAt = token.created_at;
-                }
-                // Keep latest usage date
-                if (token.last_used_at && (!existing.lastUsedAt || new Date(token.last_used_at) > new Date(existing.lastUsedAt))) {
-                    existing.lastUsedAt = token.last_used_at;
-                }
-                // Merge scopes
-                if (token.scope) {
-                    token.scope.split(' ').forEach((s: string) => existing.scopes.add(s));
-                }
-            }
-        }
-
-        const apps = Array.from(appMap.values()).map(app => ({
-            ...app,
-            scopes: Array.from(app.scopes),
-        }));
-
-        return { success: true, apps };
     }
 
     /**

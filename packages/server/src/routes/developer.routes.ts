@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { randomBytes } from 'crypto';
 import type { HonoVariables } from '../types/index.js';
 import { webhookService } from '../services/webhook.service.js';
+import { claimsService } from '../services/claims.service.js';
+import * as brandingService from '../services/branding.service.js';
 
 const developerRouter = new Hono<{ Variables: HonoVariables }>();
 
@@ -44,6 +46,28 @@ const createWebhookSchema = z.object({
 const testWebhookSchema = z.object({
     event: z.string(),
     payload: z.record(z.any()).optional().default({})
+});
+
+const createClaimSchema = z.object({
+    claim_name: z.string().min(2).max(50),
+    claim_source: z.enum(['user_attribute', 'static', 'computed']),
+    source_field: z.string().max(255).optional(),
+    static_value: z.string().optional(),
+    computed_expression: z.string().optional(),
+    transform_function: z.enum(['none', 'uppercase', 'lowercase', 'hash_sha256', 'base64_encode', 'json_stringify']).default('none'),
+    required_scope: z.string().optional(),
+    enabled: z.boolean().default(true)
+});
+
+const updateClaimSchema = z.object({
+    claim_name: z.string().min(2).max(50).optional(),
+    claim_source: z.enum(['user_attribute', 'static', 'computed']).optional(),
+    source_field: z.string().max(255).optional(),
+    static_value: z.string().optional(),
+    computed_expression: z.string().optional(),
+    transform_function: z.enum(['none', 'uppercase', 'lowercase', 'hash_sha256', 'base64_encode', 'json_stringify']).optional(),
+    required_scope: z.string().optional(),
+    enabled: z.boolean().optional()
 });
 
 // Helper to generate credentials
@@ -503,4 +527,299 @@ developerRouter.get(
     }
 );
 
+// ============================================
+// Custom Claims Routes
+// ============================================
+
+/**
+ * GET /apps/:clientId/claims
+ * List custom claims
+ */
+developerRouter.get(
+    '/apps/:clientId/claims',
+    authMiddleware(),
+    async (c) => {
+        const clientId = c.req.param('clientId');
+        const user = c.get('user');
+        const supabase = getSupabase();
+
+        // 1. Resolve App ID and verify ownership
+        const { data: app, error: appError } = await supabase
+            .from(TABLES.APPLICATIONS)
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('owner_id', user.id)
+            .single();
+
+        if (appError || !app) {
+            return c.json({ error: 'Application not found' }, 404);
+        }
+
+        // 2. Fetch claims
+        const claims = await claimsService.getClaimsForApp(app.id);
+
+        return c.json({ success: true, data: claims });
+    }
+);
+
+/**
+ * POST /apps/:clientId/claims
+ * Create custom claim
+ */
+developerRouter.post(
+    '/apps/:clientId/claims',
+    authMiddleware(),
+    zValidator('json', createClaimSchema),
+    async (c) => {
+        const clientId = c.req.param('clientId');
+        const body = c.req.valid('json');
+        const user = c.get('user');
+        const supabase = getSupabase();
+
+        // 1. Resolve App ID
+        const { data: app, error: appError } = await supabase
+            .from(TABLES.APPLICATIONS)
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('owner_id', user.id)
+            .single();
+
+        if (appError || !app) {
+            return c.json({ error: 'Application not found' }, 404);
+        }
+
+        // 2. Create claim
+        try {
+            const claim = await claimsService.createClaim(app.id, body);
+            return c.json({ success: true, data: claim });
+        } catch (error: any) {
+            logger.error('Failed to create claim', { userId: user.id, clientId, error });
+            return c.json({ error: error.message || 'Failed to create claim' }, 500);
+        }
+    }
+);
+
+/**
+ * PATCH /apps/:clientId/claims/:claimId
+ * Update custom claim
+ */
+developerRouter.patch(
+    '/apps/:clientId/claims/:claimId',
+    authMiddleware(),
+    zValidator('json', updateClaimSchema),
+    async (c) => {
+        const clientId = c.req.param('clientId');
+        const claimId = c.req.param('claimId');
+        const body = c.req.valid('json');
+        const user = c.get('user');
+        const supabase = getSupabase();
+
+        // 1. Resolve App ID & Verify Ownership
+        const { data: app } = await supabase
+            .from(TABLES.APPLICATIONS)
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('owner_id', user.id)
+            .single();
+
+        if (!app) {
+            return c.json({ error: 'Application not found' }, 404);
+        }
+
+        // 2. Update claim
+        try {
+            // Verify claim belongs to app (security check)
+            const exists = await claimsService.getClaim(claimId);
+            if (!exists || exists.application_id !== app.id) {
+                return c.json({ error: 'Claim not found for this application' }, 404);
+            }
+
+            const claim = await claimsService.updateClaim(claimId, app.id, body);
+            return c.json({ success: true, data: claim });
+        } catch (error: any) {
+            logger.error('Failed to update claim', { userId: user.id, claimId, error });
+            return c.json({ error: error.message || 'Failed to update claim' }, 500);
+        }
+    }
+);
+
+/**
+ * DELETE /apps/:clientId/claims/:claimId
+ * Delete custom claim
+ */
+developerRouter.delete(
+    '/apps/:clientId/claims/:claimId',
+    authMiddleware(),
+    async (c) => {
+        const clientId = c.req.param('clientId');
+        const claimId = c.req.param('claimId');
+        const user = c.get('user');
+        const supabase = getSupabase();
+
+        // 1. Resolve App ID & Verify Ownership
+        const { data: app } = await supabase
+            .from(TABLES.APPLICATIONS)
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('owner_id', user.id)
+            .single();
+
+        if (!app) {
+            return c.json({ error: 'Application not found' }, 404);
+        }
+
+        // 2. Delete claim
+        try {
+            // Verify claim belongs to app
+            const exists = await claimsService.getClaim(claimId);
+            if (!exists || exists.application_id !== app.id) {
+                return c.json({ error: 'Claim not found' }, 404);
+            }
+
+            await claimsService.deleteClaim(claimId, app.id);
+            return c.json({ success: true });
+        } catch (error: any) {
+            logger.error('Failed to delete claim', { userId: user.id, claimId, error });
+            return c.json({ error: error.message || 'Failed to delete claim' }, 500);
+        }
+    }
+);
+
+
+// ============================================
+// Branding (White-Label) Routes
+// ============================================
+
+const updateBrandingSchema = z.object({
+    logo_url: z.string().url().nullable().optional(),
+    favicon_url: z.string().url().nullable().optional(),
+    background_image_url: z.string().url().nullable().optional(),
+    primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    secondary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    background_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    text_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    card_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    error_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    font_family: z.string().max(100).optional(),
+    custom_css: z.string().nullable().optional(),
+    login_title: z.string().max(100).nullable().optional(),
+    login_subtitle: z.string().max(200).nullable().optional(),
+    footer_text: z.string().max(200).nullable().optional(),
+    show_social_login: z.boolean().optional(),
+    show_powered_by: z.boolean().optional(),
+    default_locale: z.string().max(10).optional(),
+});
+
+/**
+ * GET /developer/apps/:clientId/branding
+ * Get branding configuration for an app
+ */
+developerRouter.get(
+    '/apps/:clientId/branding',
+    authMiddleware(),
+    async (c) => {
+        const user = c.get('user');
+        const clientId = c.req.param('clientId');
+        const supabase = getSupabase();
+
+        // Verify ownership
+        const { data: app, error: appError } = await supabase
+            .from(TABLES.APPLICATIONS)
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('owner_id', user.id)
+            .single();
+
+        if (appError || !app) {
+            return c.json({ error: 'Application not found' }, 404);
+        }
+
+        try {
+            const branding = await brandingService.getBrandingWithDefaults(app.id);
+            return c.json({ success: true, data: branding });
+        } catch (error: any) {
+            logger.error('Failed to get branding', { userId: user.id, clientId, error });
+            return c.json({ error: error.message || 'Failed to get branding' }, 500);
+        }
+    }
+);
+
+/**
+ * PUT /developer/apps/:clientId/branding
+ * Update branding configuration for an app
+ */
+developerRouter.put(
+    '/apps/:clientId/branding',
+    authMiddleware(),
+    zValidator('json', updateBrandingSchema),
+    async (c) => {
+        const user = c.get('user');
+        const clientId = c.req.param('clientId');
+        const body = c.req.valid('json');
+        const supabase = getSupabase();
+
+        // Verify ownership
+        const { data: app, error: appError } = await supabase
+            .from(TABLES.APPLICATIONS)
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('owner_id', user.id)
+            .single();
+
+        if (appError || !app) {
+            return c.json({ error: 'Application not found' }, 404);
+        }
+
+        try {
+            const result = await brandingService.upsertBranding(app.id, body);
+            if (!result.success) {
+                return c.json({ error: result.error }, 400);
+            }
+            return c.json({ success: true, data: result.data });
+        } catch (error: any) {
+            logger.error('Failed to update branding', { userId: user.id, clientId, error });
+            return c.json({ error: error.message || 'Failed to update branding' }, 500);
+        }
+    }
+);
+
+/**
+ * DELETE /developer/apps/:clientId/branding
+ * Delete branding (revert to defaults)
+ */
+developerRouter.delete(
+    '/apps/:clientId/branding',
+    authMiddleware(),
+    async (c) => {
+        const user = c.get('user');
+        const clientId = c.req.param('clientId');
+        const supabase = getSupabase();
+
+        // Verify ownership
+        const { data: app, error: appError } = await supabase
+            .from(TABLES.APPLICATIONS)
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('owner_id', user.id)
+            .single();
+
+        if (appError || !app) {
+            return c.json({ error: 'Application not found' }, 404);
+        }
+
+        try {
+            const result = await brandingService.deleteBranding(app.id);
+            if (!result.success) {
+                return c.json({ error: result.error }, 400);
+            }
+            return c.json({ success: true, message: 'Branding reset to defaults' });
+        } catch (error: any) {
+            logger.error('Failed to delete branding', { userId: user.id, clientId, error });
+            return c.json({ error: error.message || 'Failed to delete branding' }, 500);
+        }
+    }
+);
+
+
 export { developerRouter };
+

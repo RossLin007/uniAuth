@@ -12,6 +12,10 @@ import trustedAuthRouter from './routes/trusted-auth.routes.js';
 import { developerRouter } from './routes/developer.routes.js';
 import { healthRouter } from './routes/health.routes.js';
 import { docsRouter } from './routes/docs.routes.js';
+import { oidcRouter } from './routes/oidc.routes.js';
+import { accountLinkingRouter } from './routes/account-linking.routes.js';
+import { passkeyRouter } from './routes/passkey.routes.js';
+import { brandingRouter } from './routes/branding.routes.js';
 import { env } from './config/index.js';
 import { requestLogger } from './middlewares/request-logger.middleware.js';
 import { generalRateLimiter } from './middlewares/rate-limit.middleware.js';
@@ -93,7 +97,16 @@ app.route('/api/v1/auth/trusted', trustedAuthRouter);
 app.route('/api/v1/developer', developerRouter);
 app.route('/api/v1/user', userRouter);
 app.route('/api/v1/oauth2', oauth2Router);
+app.route('/api/v1/oauth2', oidcRouter); // UserInfo endpoint
 app.route('/api/v1/mfa', mfaRouter);
+app.route('/api/v1/account', accountLinkingRouter); // Account linking
+app.route('/api/v1/auth/passkey', passkeyRouter); // Passkey / WebAuthn
+app.route('/api/v1/branding', brandingRouter); // Public branding
+
+// ============================================
+// OIDC Routes (at root for /.well-known)
+// ============================================
+app.route('/', oidcRouter); // Discovery document
 
 
 // ============================================

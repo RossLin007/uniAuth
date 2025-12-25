@@ -14,7 +14,9 @@
         "copied": "Copied to clipboard!",
         "success": "Success",
         "error": "Error",
-        "warning": "Warning"
+        "warning": "Warning",
+        "actions": "Actions",
+        "confirmDelete": "Are you sure you want to delete? This action cannot be undone."
     },
     "auth": {
         "login": "Login",
@@ -63,7 +65,11 @@
             "spa": "Single Page App",
             "native": "Native Mobile App",
             "m2m": "Machine-to-Machine"
-        }
+        },
+        "homepageUrl": "Homepage URL",
+        "logoUrl": "Logo URL",
+        "updateApp": "Update App",
+        "appUpdated": "Application updated successfully!"
     },
     "webhook": {
         "title": "Webhooks",
@@ -72,7 +78,11 @@
         "events": "Events",
         "addWebhook": "Add Webhook",
         "testWebhook": "Test",
-        "deliveries": "Deliveries"
+        "deliveries": "Deliveries",
+        "noDeliveries": "No recent deliveries found.",
+        "status": "Status",
+        "code": "Code",
+        "time": "Time"
     },
     "integration": {
         "title": "Integration Guide",
@@ -108,5 +118,57 @@
         "removeError": "Failed to remove URI",
         "placeholder": "https://your-app.com/callback",
         "hint": "OAuth callback URLs. Use http://localhost for development."
+    },
+    "claims": {
+        "title": "Custom Claims",
+        "description": "Configure additional claims to be included in ID Tokens.",
+        "addClaim": "Add Claim",
+        "noClaims": "No custom claims configured.",
+        "name": "Claim Name",
+        "source": "Source",
+        "transform": "Transform",
+        "loadError": "Failed to load claims",
+        "createSuccess": "Claim created successfully",
+        "updateSuccess": "Claim updated successfully",
+        "saveError": "Failed to save claim",
+        "deleteSuccess": "Claim deleted successfully",
+        "deleteError": "Failed to delete claim",
+        "editClaim": "Edit Custom Claim",
+        "createClaim": "Create Custom Claim",
+        "modalDescription": "Define where the claim value comes from.",
+        "attributeName": "User Attribute Field",
+        "staticValue": "Static Value",
+        "expression": "Computed Expression",
+        "requiredScope": "Required Scope (Optional)",
+        "transformFunction": "Transform Function"
+    },
+    "branding": {
+        "title": "White-Label Branding",
+        "description": "Customize the appearance of your login page.",
+        "images": "Images & Logo",
+        "logoUrl": "Logo URL",
+        "faviconUrl": "Favicon URL",
+        "colors": "Color Scheme",
+        "primaryColor": "Primary Color",
+        "secondaryColor": "Secondary Color",
+        "backgroundColor": "Background Color",
+        "textColor": "Text Color",
+        "textContent": "Text Content",
+        "loginTitle": "Login Title",
+        "loginTitlePlaceholder": "Welcome to My App",
+        "loginSubtitle": "Login Subtitle",
+        "loginSubtitlePlaceholder": "Sign in to continue",
+        "footerText": "Footer Text",
+        "options": "Options",
+        "showSocialLogin": "Show social login buttons",
+        "showPoweredBy": "Show 'Powered by UniAuth'",
+        "showPreview": "Show Preview",
+        "hidePreview": "Hide Preview",
+        "reset": "Reset to Defaults",
+        "resetConfirm": "Are you sure you want to reset branding to defaults?",
+        "saveSuccess": "Branding saved successfully",
+        "saveError": "Failed to save branding",
+        "resetSuccess": "Branding reset to defaults",
+        "resetError": "Failed to reset branding"
     }
 }

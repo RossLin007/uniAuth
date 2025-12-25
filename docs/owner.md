@@ -35,3 +35,21 @@ anon key
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaGJwb2Z6dnpwaGlzZHVuamxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwNTA3MTcsImV4cCI6MjA4MDYyNjcxN30.uBvionTwptTXZf7oE-SCOqVOPpq8EgkcuxshwzPb9Jw
 
 
+
+
+
+Request URL
+https://rag.55387.xyz/api/documents/get-upload-url
+Request Method
+POST
+Status Code
+500 Internal Server Error
+Remote Address
+74.125.195.121:443
+
+{"fileName":"202510_merged.md","contentType":"text/markdown","storeName":"fileSearchStores/xd-xpuck5t7wh46","displayName":"202510_merged.md","memo":"{\"source\":\"\",\"background\":\"\",\"usage\":\"\",\"dataFlow\":{\"from\":\"\",\"to\":\"\"}}"}
+
+{
+  "success": false,
+  "error": "Permission 'iam.serviceAccounts.signBlob' denied on resource (or it may not exist)."
+}
