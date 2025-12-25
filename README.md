@@ -126,6 +126,34 @@ pnpm start
 
 ---
 
+## 🔍 Error Tracking / 错误追踪
+
+UniAuth 支持 [Sentry](https://sentry.io) 进行生产环境错误追踪。
+
+### Configuration / 配置
+
+1. 在 [Sentry.io](https://sentry.io) 创建一个项目
+2. 获取 DSN (Data Source Name)
+3. 在 `.env` 文件中配置：
+
+```env
+# Sentry Error Tracking (recommended for production)
+SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
+```
+
+服务器启动时会自动初始化 Sentry。启动日志中会显示：
+```
+Sentry error tracking initialized
+```
+
+### Features / 功能
+
+- 自动捕获未处理的异常
+- 包含请求上下文信息（URL, method, headers）
+- 支持环境区分（development/production）
+
+---
+
 ## 📦 Packages / 包结构
 
 | Package | Description |

@@ -21,7 +21,8 @@
     "auth": {
         "login": "Login",
         "loginTitle": "Developer Console",
-        "loginSubtitle": "Login to manage your applications",
+        "loginSubtitle": "Login or create a new developer account",
+        "autoRegisterHint": "First time? Just enter your email or phone to automatically create an account.",
         "phone": "Phone",
         "email": "Email",
         "phoneNumber": "Phone Number",
@@ -37,13 +38,53 @@
         "verify": "Verify",
         "cancelAndGoBack": "Cancel and go back"
     },
+    "nav": {
+        "dashboard": "Dashboard",
+        "apps": "Applications",
+        "docs": "Documentation"
+    },
     "dashboard": {
         "title": "Developer Console",
         "subtitle": "Manage your applications and credentials",
         "newApp": "New App",
         "noApps": "No applications found. Create one to get started.",
         "manage": "Manage",
-        "hideDetails": "Hide Details"
+        "hideDetails": "Hide Details",
+        "welcomeMessage": "Welcome to your Developer Console",
+        "quickActions": "Quick Actions",
+        "quickActionsDesc": "Common tasks to help you get started",
+        "manageApps": "Manage Applications",
+        "manageAppsDesc": "Create and configure your apps",
+        "viewDocs": "View Documentation",
+        "viewDocsDesc": "Explore API reference and guides",
+        "recentApps": "Recent Applications",
+        "recentAppsDesc": "Your recently created apps"
+    },
+    "apps": {
+        "subtitle": "Create and manage your OAuth applications"
+    },
+    "docs": {
+        "subtitle": "API documentation and integration guides",
+        "swaggerTitle": "Interactive API Documentation",
+        "swaggerDesc": "Explore and test UniAuth APIs with Swagger UI",
+        "openSwagger": "Open Swagger UI",
+        "quickstart": "Quick Start Guide",
+        "quickstartDesc": "Get started with UniAuth in minutes",
+        "authentication": "Authentication APIs",
+        "authenticationDesc": "Phone, email and social login endpoints",
+        "oauth2": "OAuth 2.0 Provider",
+        "oauth2Desc": "Implement OAuth2 flows for third-party apps",
+        "webhooks": "Webhooks & Events",
+        "webhooksDesc": "Real-time notifications for user events",
+        "sdkTitle": "SDK Installation",
+        "sdkDesc": "Install the UniAuth SDK for quick integration",
+        "basicUsage": "Basic Usage"
+    },
+    "stats": {
+        "totalApps": "Total Apps",
+        "activeClients": "Web Clients",
+        "webhooks": "Webhooks",
+        "m2mClients": "M2M Clients"
     },
     "app": {
         "createTitle": "Create New Application",

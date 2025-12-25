@@ -4,8 +4,11 @@ import { ToastProvider } from '@/contexts/ToastContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
+import AppsPage from '@/pages/AppsPage';
+import DocsPage from '@/pages/DocsPage';
 import OAuthCallback from '@/pages/OAuthCallback';
 import GoogleCallback from '@/pages/GoogleCallback';
+import { Layout } from '@/components/Layout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuth();
@@ -25,11 +28,21 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
       <Route path="/auth/callback/google" element={<GoogleCallback />} />
-      <Route path="/" element={
+
+      {/* Protected routes with Layout */}
+      <Route element={
         <PrivateRoute>
-          <Dashboard />
+          <Layout />
         </PrivateRoute>
-      } />
+      }>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/apps" element={<AppsPage />} />
+        <Route path="/docs" element={<DocsPage />} />
+      </Route>
+
+      {/* Catch-all route - redirect to home */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

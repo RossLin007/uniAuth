@@ -76,6 +76,9 @@ export default function Login() {
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl font-bold">{t('auth.loginTitle')}</CardTitle>
                     <CardDescription>{t('auth.loginSubtitle')}</CardDescription>
+                    <p className="text-xs text-slate-500 mt-2">
+                        {t('auth.autoRegisterHint')}
+                    </p>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* Error Message */}

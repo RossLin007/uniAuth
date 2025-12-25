@@ -21,7 +21,8 @@
     "auth": {
         "login": "登录",
         "loginTitle": "开发者控制台",
-        "loginSubtitle": "登录以管理您的应用程序",
+        "loginSubtitle": "登录或注册新的开发者账号",
+        "autoRegisterHint": "首次登录？输入邮箱或手机号即可自动注册账户。",
         "phone": "手机",
         "email": "邮箱",
         "phoneNumber": "手机号码",
@@ -37,13 +38,53 @@
         "verify": "验证",
         "cancelAndGoBack": "取消并返回"
     },
+    "nav": {
+        "dashboard": "仪表盘",
+        "apps": "应用管理",
+        "docs": "文档中心"
+    },
     "dashboard": {
         "title": "开发者控制台",
         "subtitle": "管理您的应用程序和凭据",
         "newApp": "新建应用",
         "noApps": "暂无应用。创建一个开始吧。",
         "manage": "管理",
-        "hideDetails": "隐藏详情"
+        "hideDetails": "隐藏详情",
+        "welcomeMessage": "欢迎来到开发者控制台",
+        "quickActions": "快捷操作",
+        "quickActionsDesc": "常用功能快速入口",
+        "manageApps": "管理应用",
+        "manageAppsDesc": "创建和配置您的应用",
+        "viewDocs": "查看文档",
+        "viewDocsDesc": "浏览 API 参考和集成指南",
+        "recentApps": "最近的应用",
+        "recentAppsDesc": "您最近创建的应用"
+    },
+    "apps": {
+        "subtitle": "创建和管理您的 OAuth 应用"
+    },
+    "docs": {
+        "subtitle": "API 文档和集成指南",
+        "swaggerTitle": "交互式 API 文档",
+        "swaggerDesc": "使用 Swagger UI 探索和测试 UniAuth API",
+        "openSwagger": "打开 Swagger UI",
+        "quickstart": "快速入门",
+        "quickstartDesc": "几分钟内开始使用 UniAuth",
+        "authentication": "认证 API",
+        "authenticationDesc": "手机、邮箱和社交登录接口",
+        "oauth2": "OAuth 2.0 Provider",
+        "oauth2Desc": "为第三方应用实现 OAuth2 流程",
+        "webhooks": "Webhooks 与事件",
+        "webhooksDesc": "用户事件实时通知",
+        "sdkTitle": "SDK 安装",
+        "sdkDesc": "安装 UniAuth SDK 快速集成",
+        "basicUsage": "基础用法"
+    },
+    "stats": {
+        "totalApps": "应用总数",
+        "activeClients": "Web 客户端",
+        "webhooks": "Webhooks",
+        "m2mClients": "M2M 客户端"
     },
     "app": {
         "createTitle": "创建新应用",

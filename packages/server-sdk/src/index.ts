@@ -60,6 +60,20 @@ export interface AuthError extends Error {
     statusCode: number;
 }
 
+// API Response types
+interface ApiErrorResponse {
+    success: false;
+    error?: {
+        code?: string;
+        message?: string;
+    };
+}
+
+interface ApiSuccessResponse<T> {
+    success: true;
+    data: T;
+}
+
 // Express-compatible request/response types
 interface ExpressRequest {
     headers: Record<string, string | string[] | undefined>;
@@ -114,16 +128,16 @@ export class UniAuthServer {
             });
 
             if (!response.ok) {
-                const error = await response.json();
+                const errorResponse = await response.json() as ApiErrorResponse;
                 throw this.createError(
-                    error.error?.code || 'INVALID_TOKEN',
-                    error.error?.message || 'Invalid token',
+                    errorResponse.error?.code || 'INVALID_TOKEN',
+                    errorResponse.error?.message || 'Invalid token',
                     401
                 );
             }
 
-            const data = await response.json();
-            const payload = data.data as TokenPayload;
+            const data = await response.json() as ApiSuccessResponse<TokenPayload>;
+            const payload = data.data;
 
             // Cache the result (for 1 minute or until expiry, whichever is sooner)
             const cacheExpiry = Math.min(payload.exp * 1000, Date.now() + 60 * 1000);
@@ -191,16 +205,16 @@ export class UniAuthServer {
         });
 
         if (!response.ok) {
-            const error = await response.json();
+            const errorResponse = await response.json() as ApiErrorResponse;
             throw this.createError(
-                error.error?.code || 'USER_NOT_FOUND',
-                error.error?.message || 'User not found',
+                errorResponse.error?.code || 'USER_NOT_FOUND',
+                errorResponse.error?.message || 'User not found',
                 response.status
             );
         }
 
-        const data = await response.json();
-        return data.data as UserInfo;
+        const data = await response.json() as ApiSuccessResponse<UserInfo>;
+        return data.data;
     }
 
     /**

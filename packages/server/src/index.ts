@@ -24,6 +24,19 @@ import { logger } from './lib/logger.js';
 import { isRedisAvailable } from './lib/redis.js';
 import type { HonoVariables } from './types/index.js';
 
+// Sentry for error tracking
+import * as Sentry from '@sentry/node';
+
+// Initialize Sentry if configured
+if (env.SENTRY_DSN) {
+    Sentry.init({
+        dsn: env.SENTRY_DSN,
+        environment: env.NODE_ENV,
+        tracesSampleRate: env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    });
+    logger.info('Sentry error tracking initialized');
+}
+
 // Create Hono app
 const app = new Hono<{ Variables: HonoVariables }>();
 
@@ -143,10 +156,12 @@ app.onError((err, c) => {
         path: c.req.path,
     });
 
-    // TODO: Send to Sentry in production
-    // if (env.SENTRY_DSN) {
-    //     Sentry.captureException(err, { extra: { requestId } });
-    // }
+    // Send to Sentry in production
+    if (env.SENTRY_DSN) {
+        Sentry.captureException(err, {
+            extra: { requestId, path: c.req.path },
+        });
+    }
 
     return c.json(
         {
@@ -202,6 +217,7 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 if (env.NODE_ENV !== 'test') {
     const redisStatus = isRedisAvailable() ? '✓ Connected' : '✗ Not configured';
     const rateLimitStatus = env.RATE_LIMIT_ENABLED ? '✓ Enabled' : '✗ Disabled';
+    const sentryStatus = env.SENTRY_DSN ? '✓ Enabled' : '✗ Not configured';
 
     console.log(`
 ╔════════════════════════════════════════════════════════════╗
@@ -215,6 +231,7 @@ if (env.NODE_ENV !== 'test') {
 ║   Services:                                                ║
 ║   • Redis:      ${redisStatus.padEnd(38)}    ║
 ║   • RateLimit:  ${rateLimitStatus.padEnd(38)}    ║
+║   • Sentry:     ${sentryStatus.padEnd(38)}    ║
 ║                                                            ║
 ║   Endpoints:                                               ║
 ║   • Health:    http://localhost:${port}/health               ║
