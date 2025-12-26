@@ -76,8 +76,24 @@ networks:
     name: uniauth-network
     driver: bridge
 
+  # ============================================
+  # Infrastructure Services
+  # ============================================
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 # ============================================
 # Volumes (if needed for local Redis)
 # ============================================
-# volumes:
-#   redis-data:
+volumes:
+  redis-data:

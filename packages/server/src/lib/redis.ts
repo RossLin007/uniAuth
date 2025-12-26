@@ -1,33 +1,83 @@
 /**
  * Redis Client Module
  * Redis 客户端模块
- * 
+ *
  * Provides caching, rate limiting, and session storage
+ * Supports both Upstash (HTTP) and standard Redis (TCP)
  * 提供缓存、限流和会话存储功能
+ * 支持 Upstash (HTTP) 和标准 Redis (TCP)
  */
 
-import { Redis } from '@upstash/redis';
-import { env } from '../config/env.js';
+import { Redis as UpstashRedis } from '@upstash/redis';
+import IORedis from 'ioredis';
+import { env } from '../config/index.js';
+import { logger } from './logger.js';
 
-let redis: Redis | null = null;
+// Unified interface for Redis operations
+interface RedisClientInterface {
+    get(key: string): Promise<string | null>;
+    setex(key: string, seconds: number, value: string): Promise<string | null>;
+    del(key: string): Promise<number>;
+    incr(key: string): Promise<number>;
+    expire(key: string, seconds: number): Promise<number>;
+    ttl(key: string): Promise<number>;
+}
+
+let redisClient: RedisClientInterface | null = null;
+let clientType: 'upstash' | 'ioredis' | null = null;
 
 /**
  * Get or create Redis client instance
  * 获取或创建 Redis 客户端实例
  */
-export function getRedis(): Redis | null {
-    if (!env.UPSTASH_REDIS_URL || !env.UPSTASH_REDIS_TOKEN) {
-        return null;
+export function getRedis(): RedisClientInterface | null {
+    if (redisClient) return redisClient;
+
+    // Priority 1: Upstash Redis (Cloud/Production)
+    if (env.UPSTASH_REDIS_URL && env.UPSTASH_REDIS_TOKEN) {
+        try {
+            const client = new UpstashRedis({
+                url: env.UPSTASH_REDIS_URL,
+                token: env.UPSTASH_REDIS_TOKEN,
+            });
+            redisClient = client as unknown as RedisClientInterface; // Upstash client matches interface structure compatible enough for our usage
+            clientType = 'upstash';
+            logger.info('Initialized Upstash Redis client');
+            return redisClient;
+        } catch (error) {
+            logger.error('Failed to initialize Upstash Redis', error);
+        }
     }
 
-    if (!redis) {
-        redis = new Redis({
-            url: env.UPSTASH_REDIS_URL,
-            token: env.UPSTASH_REDIS_TOKEN,
-        });
+    // Priority 2: Standard Redis (Local/Self-hosted)
+    if (env.REDIS_URL) {
+        try {
+            const client = new IORedis(env.REDIS_URL, {
+                maxRetriesPerRequest: 3,
+                retryStrategy: (times) => {
+                    if (times > 3) return null; // Stop retrying after 3 times
+                    return Math.min(times * 50, 2000);
+                }
+            });
+
+            client.on('error', (err) => {
+                logger.error('Redis Client Error', err);
+            });
+
+            // Wrap IORedis to match our interface if needed, but IORedis mostly matches.
+            // However, Upstash returns null for get(), IORedis returns null.
+            // Upstash returns 'OK' for setex, IORedis returns 'OK'.
+            redisClient = client as unknown as RedisClientInterface;
+            clientType = 'ioredis';
+            logger.info('Initialized Local/Standard Redis client');
+            return redisClient;
+        } catch (error) {
+            logger.error('Failed to initialize Local Redis', error);
+        }
     }
 
-    return redis;
+    logger.warn('No Redis configuration found');
+    return null;
 }
 
 /**
@@ -41,18 +91,21 @@ export function isRedisAvailable(): boolean {
 /**
  * Get a value from cache
  * 从缓存获取值
- * 
- * @param key - Cache key
- * @returns The cached value or null
  */
 export async function cacheGet<T>(key: string): Promise<T | null> {
     const client = getRedis();
     if (!client) return null;
 
     try {
-        return await client.get(key) as T | null;
+        const value = await client.get(key);
+        if (!value) return null;
+        try {
+            return JSON.parse(value) as T;
+        } catch {
+            return value as unknown as T;
+        }
     } catch (error) {
-        console.warn('Redis cache get failed:', error);
+        logger.warn('Redis cache get failed:', error);
         return null;
     }
 }
@@ -60,27 +113,22 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
 /**
  * Set a value in cache with TTL
  * 设置缓存值（带过期时间）
- * 
- * @param key - Cache key
- * @param value - Value to cache
- * @param ttlSeconds - Time to live in seconds
  */
 export async function cacheSet(key: string, value: unknown, ttlSeconds: number): Promise<void> {
     const client = getRedis();
     if (!client) return;
 
     try {
-        await client.setex(key, ttlSeconds, JSON.stringify(value));
+        const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+        await client.setex(key, ttlSeconds, stringValue);
     } catch (error) {
-        console.warn('Redis cache set failed:', error);
+        logger.warn('Redis cache set failed:', error);
     }
 }
 
 /**
  * Delete a value from cache
  * 从缓存删除值
- * 
- * @param key - Cache key
  */
 export async function cacheDelete(key: string): Promise<void> {
     const client = getRedis();
@@ -89,17 +137,13 @@ export async function cacheDelete(key: string): Promise<void> {
     try {
         await client.del(key);
     } catch (error) {
-        console.warn('Redis cache delete failed:', error);
+        logger.warn('Redis cache delete failed:', error);
     }
 }
 
 /**
  * Increment a counter (for rate limiting)
  * 增加计数器（用于限流）
- * 
- * @param key - Counter key
- * @param ttlSeconds - TTL for the counter
- * @returns The new counter value
  */
 export async function incrementCounter(key: string, ttlSeconds: number): Promise<number> {
     const client = getRedis();
@@ -113,7 +157,7 @@ export async function incrementCounter(key: string, ttlSeconds: number): Promise
         }
         return count;
     } catch (error) {
-        console.warn('Redis increment failed:', error);
+        logger.warn('Redis increment failed:', error);
         return 0;
     }
 }
@@ -121,9 +165,6 @@ export async function incrementCounter(key: string, ttlSeconds: number): Promise
 /**
  * Check if a key is locked (rate limit exceeded)
  * 检查键是否被锁定（超出限流）
- * 
- * @param key - Lock key
- * @returns True if locked
  */
 export async function isLocked(key: string): Promise<boolean> {
     const client = getRedis();
@@ -133,7 +174,7 @@ export async function isLocked(key: string): Promise<boolean> {
         const value = await client.get(key);
         return value !== null;
     } catch (error) {
-        console.warn('Redis lock check failed:', error);
+        logger.warn('Redis lock check failed:', error);
         return false;
     }
 }
@@ -141,9 +182,6 @@ export async function isLocked(key: string): Promise<boolean> {
 /**
  * Set a lock with TTL
  * 设置锁定（带过期时间）
- * 
- * @param key - Lock key
- * @param ttlSeconds - Lock duration in seconds
  */
 export async function setLock(key: string, ttlSeconds: number): Promise<void> {
     const client = getRedis();
@@ -152,16 +190,13 @@ export async function setLock(key: string, ttlSeconds: number): Promise<void> {
     try {
         await client.setex(key, ttlSeconds, '1');
     } catch (error) {
-        console.warn('Redis set lock failed:', error);
+        logger.warn('Redis set lock failed:', error);
     }
 }
 
 /**
  * Get remaining TTL for a key
  * 获取键的剩余过期时间
- * 
- * @param key - Cache key
- * @returns TTL in seconds, -1 if no TTL, -2 if key doesn't exist
  */
 export async function getTTL(key: string): Promise<number> {
     const client = getRedis();
@@ -170,7 +205,7 @@ export async function getTTL(key: string): Promise<number> {
     try {
         return await client.ttl(key);
     } catch (error) {
-        console.warn('Redis TTL check failed:', error);
+        logger.warn('Redis TTL check failed:', error);
         return -2;
     }
 }
@@ -178,11 +213,6 @@ export async function getTTL(key: string): Promise<number> {
 /**
  * Store verification code in Redis
  * 在 Redis 中存储验证码
- * 
- * @param phone - Phone number or email
- * @param code - Verification code
- * @param type - Code type
- * @param ttlSeconds - TTL in seconds (default: 300 = 5 minutes)
  */
 export async function storeVerificationCode(
     identifier: string,
@@ -197,10 +227,6 @@ export async function storeVerificationCode(
 /**
  * Get verification code from Redis
  * 从 Redis 获取验证码
- * 
- * @param identifier - Phone number or email
- * @param type - Code type
- * @returns The stored code data or null
  */
 export async function getVerificationCode(
     identifier: string,
@@ -213,10 +239,6 @@ export async function getVerificationCode(
 /**
  * Increment verification code attempts
  * 增加验证码尝试次数
- * 
- * @param identifier - Phone number or email
- * @param type - Code type
- * @returns The new attempts count
  */
 export async function incrementVerificationAttempts(
     identifier: string,
@@ -243,9 +265,6 @@ export async function incrementVerificationAttempts(
 /**
  * Delete verification code
  * 删除验证码
- * 
- * @param identifier - Phone number or email
- * @param type - Code type
  */
 export async function deleteVerificationCode(
     identifier: string,
@@ -254,3 +273,6 @@ export async function deleteVerificationCode(
     const key = `verify:${type}:${identifier}`;
     await cacheDelete(key);
 }
+
+
+

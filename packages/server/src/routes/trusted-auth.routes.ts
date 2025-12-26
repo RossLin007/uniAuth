@@ -48,7 +48,18 @@ const codeSchema = z.string().length(6).regex(/^\d+$/, {
  */
 trustedAuthRouter.post('/phone/send-code', async (c) => {
     try {
-        const body = await c.req.json();
+        let body;
+        try {
+            body = await c.req.json();
+        } catch (e) {
+            return c.json({
+                success: false,
+                error: {
+                    code: 'INVALID_JSON',
+                    message: 'Invalid JSON body / 无效的 JSON 请求体'
+                }
+            }, 400);
+        }
         const app = getApplication(c);
 
         // Validate phone number
