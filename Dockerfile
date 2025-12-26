@@ -15,8 +15,8 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/server/package.json ./packages/server/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --prod=false
+# Install dependencies with flat hoisting for Docker compatibility
+RUN pnpm install --frozen-lockfile --prod=false --shamefully-hoist
 
 # ============================================
 # Stage 2: Builder
@@ -59,8 +59,8 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=uniauth:nodejs /app/packages/server/dist ./dist
 COPY --from=builder --chown=uniauth:nodejs /app/packages/server/package.json ./
 
-# Copy production dependencies only
-COPY --from=deps --chown=uniauth:nodejs /app/packages/server/node_modules ./node_modules
+# Copy production dependencies (hoisted to root in pnpm monorepo)
+COPY --from=deps --chown=uniauth:nodejs /app/node_modules ./node_modules
 
 # Switch to non-root user
 USER uniauth

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config/api';
 import SliderCaptcha from './SliderCaptcha';
 import OtpInput from './OtpInput';
 import MFAVerifyStep from './MFAVerifyStep';
@@ -117,7 +118,7 @@ export default function EmailLoginForm() {
         setSendingCode(true);
 
         try {
-            const response = await fetch('/api/v1/auth/email/send-code', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/email/send-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -165,7 +166,7 @@ export default function EmailLoginForm() {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/v1/auth/email/verify', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/email/verify`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, code }),

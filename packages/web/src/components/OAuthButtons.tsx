@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 interface OAuthProvider {
     id: string;
@@ -45,7 +46,7 @@ export default function OAuthButtons() {
     useEffect(() => {
         const fetchProviders = async () => {
             try {
-                const response = await fetch('/api/v1/auth/oauth/providers');
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/oauth/providers`);
                 const data = await response.json();
                 if (data.success) {
                     setAvailableProviders(data.data.providers);
@@ -62,7 +63,10 @@ export default function OAuthButtons() {
         setLoading(providerId);
 
         try {
-            const response = await fetch(`/api/v1/auth/oauth/${providerId}/authorize`);
+            // Explicitly pass the current origin as the redirect URI base
+            // This fixes the mismatch between 'sso' (backend default) and 'auth' (actual frontend)
+            const redirectUri = `${window.location.origin}/auth/callback/${providerId}`;
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/oauth/${providerId}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`);
             const data = await response.json();
 
             if (data.success && data.data.auth_url) {

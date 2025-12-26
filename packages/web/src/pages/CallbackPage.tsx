@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config/api';
 import MFAVerifyStep from '../components/MFAVerifyStep';
 
 interface User {
@@ -42,12 +43,19 @@ export default function CallbackPage() {
             }
 
             try {
-                const response = await fetch(`/api/v1/auth/oauth/${provider}/callback`, {
+                // Explicitly pass the redirect URI to match the one sent during authorization
+                const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/oauth/${provider}/callback`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ code, state }),
+                    body: JSON.stringify({
+                        code,
+                        state,
+                        redirect_uri: redirectUri
+                    }),
                 });
 
                 const data = await response.json();

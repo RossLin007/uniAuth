@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { BookOpen, ExternalLink, Code, Webhook, Shield, Key } from 'lucide-react';
+import { API_BASE_URL } from '@/config/api';
 
 export default function DocsPage() {
     const { t } = useTranslation();
@@ -37,7 +38,7 @@ export default function DocsPage() {
         }
     ];
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const baseUrl = API_BASE_URL;
 
     return (
         <div className="space-y-6 md:space-y-8">

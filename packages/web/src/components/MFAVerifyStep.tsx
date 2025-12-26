@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config/api';
 import OtpInput from './OtpInput';
 
 interface User {
@@ -36,7 +37,7 @@ export default function MFAVerifyStep({ user, mfaToken, onBack }: MFAVerifyStepP
         setError('');
 
         try {
-            const response = await fetch('/api/v1/auth/mfa/verify-login', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/mfa/verify-login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

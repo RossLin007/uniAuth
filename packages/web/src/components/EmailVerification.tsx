@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config/api';
 import SliderCaptcha from './SliderCaptcha';
 
 interface Props {
@@ -68,7 +69,7 @@ export default function EmailVerification({ email, onVerified, onClose }: Props)
         setError(null);
 
         try {
-            const response = await fetch('/api/v1/auth/email/send-code', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/email/send-code`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -112,7 +113,7 @@ export default function EmailVerification({ email, onVerified, onClose }: Props)
         setError(null);
 
         try {
-            const response = await fetch('/api/v1/auth/email/verify-code', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/email/verify-code`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

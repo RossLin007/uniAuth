@@ -26,7 +26,11 @@ COPY packages/sdk ./packages/sdk
 # Copy shared configs if needed
 COPY tsconfig.json ./
 
-# Build
+# Build SDK first (required by developer-console)
+WORKDIR /app/packages/sdk
+RUN pnpm build
+
+# Build developer-console
 WORKDIR /app/packages/developer-console
 
 # Receive API URL during build time

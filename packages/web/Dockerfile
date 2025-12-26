@@ -27,7 +27,11 @@ COPY packages/client-sdk ./packages/client-sdk
 # Copy shared configs if needed
 COPY tsconfig.json ./
 
-# Build
+# Build client-sdk first (required by web)
+WORKDIR /app/packages/client-sdk
+RUN pnpm build
+
+# Build web
 WORKDIR /app/packages/web
 
 # Receive API URL during build time

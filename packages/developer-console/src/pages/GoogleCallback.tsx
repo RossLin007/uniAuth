@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
+import { API_BASE_URL } from '@/config/api';
 
 // This page handles the OAuth callback from Google social login
 export default function GoogleCallback() {
@@ -43,10 +44,9 @@ export default function GoogleCallback() {
 
             try {
                 setStatus('Exchanging code for tokens...');
-                const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
                 // Call the backend to exchange the code for tokens
-                const response = await fetch(`${baseUrl}/api/v1/auth/oauth/google/callback`, {
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/oauth/google/callback`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -105,8 +105,7 @@ export default function GoogleCallback() {
         setError(null);
 
         try {
-            const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-            const response = await fetch(`${baseUrl}/api/v1/auth/mfa/verify-login`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/mfa/verify-login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

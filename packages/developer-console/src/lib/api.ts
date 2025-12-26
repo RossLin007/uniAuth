@@ -75,10 +75,12 @@ export interface CustomClaim {
     description?: string;
 }
 
+import { API_BASE_URL } from '../config/api';
+
 export type CreateClaimRequest = Omit<CustomClaim, 'id' | 'application_id'>;
 export type UpdateClaimRequest = Partial<CreateClaimRequest>;
 
-const API_BASE = '/api/v1/developer';
+const API_BASE = `${API_BASE_URL}/api/v1/developer`;
 
 async function fetchWithAuth<T>(url: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const token = localStorage.getItem('access_token');

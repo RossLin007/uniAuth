@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config/api';
 import SliderCaptcha from './SliderCaptcha';
 import CountryCodeSelector from './CountryCodeSelector';
 import OtpInput from './OtpInput';
@@ -83,7 +84,7 @@ export default function PhoneLoginForm() {
         setSendingCode(true);
 
         try {
-            const response = await fetch('/api/v1/auth/phone/send-code', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/phone/send-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -128,7 +129,7 @@ export default function PhoneLoginForm() {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/v1/auth/phone/verify', {
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/phone/verify`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone: fullPhone, code }),

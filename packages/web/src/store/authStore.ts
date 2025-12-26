@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { API_BASE_URL } from '../config/api';
 
 interface User {
     id: string;
@@ -45,7 +46,7 @@ export const useAuthStore = create<AuthState>()(
                 if (!accessToken) return;
 
                 try {
-                    const response = await fetch('/api/v1/user/me', {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/user/me`, {
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
                         },

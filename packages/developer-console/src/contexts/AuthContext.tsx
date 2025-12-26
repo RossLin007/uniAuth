@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { uniauth } from '@/lib/uniauth';
+import { API_BASE_URL } from '@/config/api';
 
 // 定义 User 接口
 interface User {
@@ -110,10 +111,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Google OAuth login
     const loginWithGoogle = useCallback(async () => {
         // Fetch the auth URL from UniAuth's social login endpoint
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         try {
             const redirectUri = window.location.origin + '/auth/callback/google';
-            const response = await fetch(`${baseUrl}/api/v1/auth/oauth/google/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`);
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/oauth/google/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`);
             const data = await response.json();
             if (data.success && data.data?.auth_url) {
                 // Redirect to Google's OAuth page

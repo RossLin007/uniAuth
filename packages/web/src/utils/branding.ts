@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 export interface BrandingConfig {
     logo_url: string | null;
@@ -57,7 +58,7 @@ export function useBranding(clientId: string | null) {
         const fetchBranding = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`/api/v1/branding/${clientId}`);
+                const response = await fetch(`${API_BASE_URL}/api/v1/branding/${clientId}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && data.data) {

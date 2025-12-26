@@ -1,4 +1,5 @@
 import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config/api';
 
 export const api = {
     async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -10,7 +11,7 @@ export const api = {
             ...options.headers,
         };
 
-        const response = await fetch(`/api/v1${endpoint}`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
             ...options,
             headers,
         });
