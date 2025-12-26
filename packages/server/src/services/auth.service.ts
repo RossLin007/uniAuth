@@ -650,7 +650,8 @@ export class AuthService {
         provider: OAuthProvider,
         code: string,
         deviceInfo?: DeviceInfo,
-        ipAddress?: string
+        ipAddress?: string,
+        redirectUri?: string
     ): Promise<{
         success: boolean;
         message: string;
@@ -661,7 +662,7 @@ export class AuthService {
         mfaToken?: string;
     }> {
         // Exchange code for tokens
-        const oauthTokens = await exchangeOAuthCode(provider, code);
+        const oauthTokens = await exchangeOAuthCode(provider, code, redirectUri);
         if (!oauthTokens) {
             return {
                 success: false,

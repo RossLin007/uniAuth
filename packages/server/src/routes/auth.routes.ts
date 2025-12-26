@@ -840,9 +840,10 @@ authRouter.get('/oauth/providers', (c) => {
  */
 authRouter.get('/oauth/:provider/authorize', (c) => {
     const provider = c.req.param('provider') as OAuthProvider;
+    const redirectUri = c.req.query('redirect_uri');
     const state = nanoid(32);
 
-    const authUrl = getOAuthAuthUrl(provider, state);
+    const authUrl = getOAuthAuthUrl(provider, state, redirectUri);
 
     if (!authUrl) {
         return c.json(
@@ -896,7 +897,8 @@ authRouter.post('/oauth/:provider/callback', async (c) => {
             provider,
             body.code,
             deviceInfo,
-            ipAddress
+            ipAddress,
+            body.redirect_uri
         );
 
         if (!result.success) {

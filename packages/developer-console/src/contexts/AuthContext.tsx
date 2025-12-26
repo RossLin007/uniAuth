@@ -112,7 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fetch the auth URL from UniAuth's social login endpoint
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         try {
-            const response = await fetch(`${baseUrl}/api/v1/auth/oauth/google/authorize`);
+            const redirectUri = window.location.origin + '/auth/callback/google';
+            const response = await fetch(`${baseUrl}/api/v1/auth/oauth/google/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`);
             const data = await response.json();
             if (data.success && data.data?.auth_url) {
                 // Redirect to Google's OAuth page

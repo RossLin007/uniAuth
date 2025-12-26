@@ -58,6 +58,11 @@ const envSchema = z.object({
     GOOGLE_CLIENT_SECRET: z.string().optional(),
     GOOGLE_REDIRECT_URI: z.string().optional(),
 
+    // OAuth - Google (Developer Console)
+    DEV_CONSOLE_GOOGLE_CLIENT_ID: z.string().optional(),
+    DEV_CONSOLE_GOOGLE_CLIENT_SECRET: z.string().optional(),
+    DEV_CONSOLE_GOOGLE_REDIRECT_URI: z.string().optional(),
+
     // OAuth - GitHub (optional)
     GITHUB_CLIENT_ID: z.string().optional(),
     GITHUB_CLIENT_SECRET: z.string().optional(),

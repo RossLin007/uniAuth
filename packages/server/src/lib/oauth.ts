@@ -15,18 +15,40 @@ interface OAuthConfig {
     scope: string;
 }
 
+interface ProviderConfigOptions {
+    redirectUri?: string;
+}
+
 /**
  * Get OAuth provider configuration
  * 获取 OAuth 提供商配置
  */
-function getProviderConfig(provider: OAuthProvider): OAuthConfig | null {
+function getProviderConfig(provider: OAuthProvider, options?: ProviderConfigOptions): OAuthConfig | null {
+    const configOptions = options;
     switch (provider) {
         case 'google':
+            // Check if this is a request for the Developer Console
+            const isDevConsole = configOptions?.redirectUri &&
+                (env.DEV_CONSOLE_GOOGLE_REDIRECT_URI === configOptions.redirectUri ||
+                    (env.DEV_CONSOLE_GOOGLE_CLIENT_ID && configOptions.redirectUri.includes('5174'))); // Fallback check by port
+
+            if (isDevConsole && env.DEV_CONSOLE_GOOGLE_CLIENT_ID && env.DEV_CONSOLE_GOOGLE_CLIENT_SECRET) {
+                return {
+                    clientId: env.DEV_CONSOLE_GOOGLE_CLIENT_ID,
+                    clientSecret: env.DEV_CONSOLE_GOOGLE_CLIENT_SECRET,
+                    redirectUri: configOptions?.redirectUri || env.DEV_CONSOLE_GOOGLE_REDIRECT_URI || `${env.FRONTEND_URL}/auth/callback/google`,
+                    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+                    tokenUrl: 'https://oauth2.googleapis.com/token',
+                    userInfoUrl: 'https://www.googleapis.com/oauth2/v2/userinfo',
+                    scope: 'openid email profile',
+                };
+            }
+
             if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return null;
             return {
                 clientId: env.GOOGLE_CLIENT_ID,
                 clientSecret: env.GOOGLE_CLIENT_SECRET,
-                redirectUri: env.GOOGLE_REDIRECT_URI || `${env.FRONTEND_URL}/auth/callback/google`,
+                redirectUri: configOptions?.redirectUri || env.GOOGLE_REDIRECT_URI || `${env.FRONTEND_URL}/auth/callback/google`,
                 authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
                 tokenUrl: 'https://oauth2.googleapis.com/token',
                 userInfoUrl: 'https://www.googleapis.com/oauth2/v2/userinfo',
@@ -79,8 +101,8 @@ function getProviderConfig(provider: OAuthProvider): OAuthConfig | null {
  * Get OAuth authorization URL
  * 获取 OAuth 授权 URL
  */
-export function getOAuthAuthUrl(provider: OAuthProvider, state: string): string | null {
-    const config = getProviderConfig(provider);
+export function getOAuthAuthUrl(provider: OAuthProvider, state: string, redirectUri?: string): string | null {
+    const config = getProviderConfig(provider, { redirectUri });
     if (!config) return null;
 
     const params = new URLSearchParams({
@@ -118,9 +140,10 @@ export function getOAuthAuthUrl(provider: OAuthProvider, state: string): string 
  */
 export async function exchangeOAuthCode(
     provider: OAuthProvider,
-    code: string
+    code: string,
+    redirectUri?: string
 ): Promise<{ accessToken: string; refreshToken?: string; idToken?: string } | null> {
-    const config = getProviderConfig(provider);
+    const config = getProviderConfig(provider, { redirectUri });
     if (!config) return null;
 
     try {
@@ -209,9 +232,10 @@ export async function getOAuthUserInfo(
     provider: OAuthProvider,
     accessToken: string,
     openId?: string, // For WeChat
-    idToken?: string // For Apple/OIDC
+    idToken?: string, // For Apple/OIDC,
+    redirectUri?: string
 ): Promise<OAuthUserInfo | null> {
-    const config = getProviderConfig(provider);
+    const config = getProviderConfig(provider, { redirectUri });
     if (!config) return null;
 
     try {
