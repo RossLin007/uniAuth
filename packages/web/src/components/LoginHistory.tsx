@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
+import EmptyState from './EmptyState';
 
 interface LoginRecord {
     id: string;
@@ -130,9 +131,11 @@ export default function LoginHistory() {
             </div>
 
             {records.length === 0 ? (
-                <div className="text-center py-6 text-slate-400">
-                    <p>{t('loginHistory.noRecords')}</p>
-                </div>
+                <EmptyState
+                    type="history"
+                    title={t('loginHistory.noRecords', 'No Login History')}
+                    description={t('loginHistory.noRecordsDesc', 'We do not have any login records for your account yet.')}
+                />
             ) : (
                 <div className="space-y-2">
                     {displayRecords.map((record, index) => {
@@ -143,13 +146,13 @@ export default function LoginHistory() {
                             <div
                                 key={record.id}
                                 className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${isFirst
-                                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                                        : 'bg-slate-50 dark:bg-slate-700/50'
+                                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                                    : 'bg-slate-50 dark:bg-slate-700/50'
                                     }`}
                             >
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isFirst
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400'
+                                    ? 'bg-green-500 text-white'
+                                    : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400'
                                     }`}>
                                     {getDeviceIcon(device)}
                                 </div>

@@ -5,12 +5,15 @@ import App from './App';
 import './i18n';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './context/ToastContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <ErrorBoundary>
             <BrowserRouter>
-                <App />
+                <ToastProvider>
+                    <App />
+                </ToastProvider>
             </BrowserRouter>
         </ErrorBoundary>
     </React.StrictMode>

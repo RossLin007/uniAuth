@@ -141,4 +141,85 @@ accountLinkingRouter.get('/link/check/:provider', async (c) => {
     return c.json({ can_link: true });
 });
 
+/**
+ * POST /api/v1/account/link-oauth
+ * Link a new social account securely (exchanges code server-side)
+ */
+accountLinkingRouter.post('/link-oauth', async (c) => {
+    const user = c.get('user');
+    if (!user) {
+        return c.json({ error: 'unauthorized' }, 401);
+    }
+
+    const body = await c.req.json();
+    const { provider, code, redirect_uri } = body;
+
+    if (!provider || !code) {
+        return c.json({
+            error: 'invalid_request',
+            error_description: 'provider and code are required',
+        }, 400);
+    }
+
+    try {
+        // Dynamic import to avoid circular dependencies if any,
+        // though strictly not needed if structure is clean.
+        // Importing standard services.
+        const { exchangeOAuthCode, getOAuthUserInfo } = await import('../lib/oauth.js');
+        const { getSupabase } = await import('../lib/supabase.js'); // Ensure we can check for existing accounts here if needed, but service does it.
+
+        // 1. Exchange code for tokens
+        const oauthTokens = await exchangeOAuthCode(provider, code, redirect_uri);
+        if (!oauthTokens) {
+            return c.json({
+                error: 'oauth_error',
+                error_description: 'Failed to exchange authentication code',
+            }, 400);
+        }
+
+        // 2. Get user info from provider
+        const oauthUserInfo = await getOAuthUserInfo(provider, oauthTokens.accessToken, undefined, oauthTokens.idToken);
+        if (!oauthUserInfo) {
+            return c.json({
+                error: 'oauth_error',
+                error_description: 'Failed to get user info from provider',
+            }, 400);
+        }
+
+        // 3. Link the account using the verified info
+        const result = await accountLinkingService.linkAccount(
+            user.id,
+            provider,
+            oauthUserInfo.id,
+            oauthUserInfo.email || undefined,
+            oauthUserInfo.raw || undefined
+        );
+
+        if (!result.success) {
+            return c.json({
+                error: 'link_failed',
+                error_description: result.conflict?.message,
+                conflict: result.conflict,
+            }, 409);
+        }
+
+        logger.info('Account linked via secure OAuth', { userId: user.id, provider });
+        return c.json({
+            success: true,
+            account: {
+                provider: result.account?.provider,
+                provider_email: result.account?.provider_email,
+                linked_at: result.account?.created_at,
+            },
+        });
+
+    } catch (error) {
+        logger.error('Secure account linking failed', { userId: user.id, provider, error });
+        return c.json({
+            error: 'internal_error',
+            error_description: 'An unexpected error occurred during account linking',
+        }, 500);
+    }
+});
+
 export { accountLinkingRouter };

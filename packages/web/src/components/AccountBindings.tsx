@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
+import { API_BASE_URL } from '../config/api';
 
 interface Binding {
     phone: { value: string | null; verified: boolean };
@@ -157,35 +158,71 @@ export default function AccountBindings({ onBindPhone, onBindEmail }: AccountBin
                 </div>
 
                 {/* OAuth Accounts */}
-                {bindings?.oauth && bindings.oauth.length > 0 && (
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">{t('bindings.oauth')}</p>
-                        <div className="space-y-2">
-                            {bindings.oauth.map((account) => (
-                                <div key={account.provider} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50">
-                                    <div className="flex items-center gap-3">
-                                        {getProviderIcon(account.provider)}
-                                        <div>
-                                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize">
-                                                {t(`providers.${account.provider}`, account.provider)}
-                                            </p>
-                                            {account.provider_email && (
-                                                <p className="text-xs text-slate-400">{account.provider_email}</p>
-                                            )}
-                                        </div>
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">{t('bindings.oauth')}</p>
+                    <div className="space-y-2">
+                        {/* Linked Accounts */}
+                        {bindings?.oauth && bindings.oauth.map((account) => (
+                            <div key={account.provider} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50">
+                                <div className="flex items-center gap-3">
+                                    {getProviderIcon(account.provider)}
+                                    <div>
+                                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize">
+                                            {t(`providers.${account.provider}`, account.provider)}
+                                        </p>
+                                        {account.provider_email && (
+                                            <p className="text-xs text-slate-400">{account.provider_email}</p>
+                                        )}
                                     </div>
-                                    <button
-                                        onClick={() => handleUnbind(account.provider)}
-                                        disabled={unbinding === account.provider}
-                                        className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
-                                    >
-                                        {unbinding === account.provider ? '...' : t('bindings.unbind')}
-                                    </button>
                                 </div>
-                            ))}
-                        </div>
+                                <button
+                                    onClick={() => handleUnbind(account.provider)}
+                                    disabled={unbinding === account.provider}
+                                    className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                    {unbinding === account.provider ? '...' : t('bindings.unbind')}
+                                </button>
+                            </div>
+                        ))}
+
+                        {/* Unlinked Providers - Available to Bind */}
+                        {bindings?.oauth && ['google', 'github'].filter(p => !bindings.oauth.some(a => a.provider === p)).map(provider => (
+                            <div key={provider} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-dashed border-slate-200 dark:border-slate-600">
+                                <div className="flex items-center gap-3">
+                                    <div className="opacity-70">
+                                        {getProviderIcon(provider)}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 capitalize">
+                                            {t(`providers.${provider}`, provider)}
+                                        </p>
+                                        <p className="text-xs text-slate-400 italic">{t('bindings.notLinked')}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            // Redirect to OAuth provider for binding
+                                            // We use the same 'auth' path but the CallbackPage will detect we are logged in
+                                            // and perform a link instead of a login.
+                                            const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+                                            const response = await fetch(`${API_BASE_URL}/api/v1/auth/oauth/${provider}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`);
+                                            const data = await response.json();
+                                            if (data.success && data.data.auth_url) {
+                                                window.location.href = data.data.auth_url;
+                                            }
+                                        } catch (e) {
+                                            console.error('Failed to start binding flow', e);
+                                        }
+                                    }}
+                                    className="px-3 py-1.5 text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 dark:text-sky-400 dark:bg-sky-900/20 dark:hover:bg-sky-900/40 rounded-lg transition-colors"
+                                >
+                                    {t('bindings.bind')}
+                                </button>
+                            </div>
+                        ))}
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

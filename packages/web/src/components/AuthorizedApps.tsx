@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
+import EmptyState from './EmptyState';
 
 interface AuthorizedApp {
     clientId: string;
@@ -87,17 +88,16 @@ export default function AuthorizedApps() {
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 font-serif">
                 {t('authorizedApps.title')}
             </h3>
 
             {apps.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                    <svg className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    <p>{t('authorizedApps.noApps')}</p>
-                </div>
+                <EmptyState
+                    type="apps"
+                    title={t('authorizedApps.noApps')}
+                    description={t('authorizedApps.noAppsDesc', 'You have not authorized any applications yet.')}
+                />
             ) : (
                 <div className="space-y-3">
                     {apps.map((app) => (

@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { X, Check, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
-interface Toast {
+export interface Toast {
     id: string;
     type: ToastType;
     message: string;
@@ -43,17 +43,15 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const info = useCallback((message: string, duration?: number) => showToast(message, 'info', duration), [showToast]);
     const warning = useCallback((message: string, duration?: number) => showToast(message, 'warning', duration), [showToast]);
 
-    const value = useMemo(() => ({ showToast, success, error, info, warning }), [showToast, success, error, info, warning]);
-
     return (
-        <ToastContext.Provider value={value}>
+        <ToastContext.Provider value={{ showToast, success, error, info, warning }}>
             {children}
             <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
                 {toasts.map((toast) => (
                     <div
                         key={toast.id}
                         className={`
-                            pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-md animate-slide-in transition-all
+                            pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-md animate-slide-in-right transition-all
                             ${toast.type === 'success' ? 'bg-white/90 dark:bg-slate-800/90 border-green-200 dark:border-green-900 text-green-700 dark:text-green-400' : ''}
                             ${toast.type === 'error' ? 'bg-white/90 dark:bg-slate-800/90 border-red-200 dark:border-red-900 text-red-700 dark:text-red-400' : ''}
                             ${toast.type === 'info' ? 'bg-white/90 dark:bg-slate-800/90 border-sky-200 dark:border-sky-900 text-sky-700 dark:text-sky-400' : ''}

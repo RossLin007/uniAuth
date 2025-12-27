@@ -46,6 +46,34 @@ export default function CallbackPage() {
                 // Explicitly pass the redirect URI to match the one sent during authorization
                 const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
 
+                // Check if user is already authenticated - if so, this is a LINK operation
+                if (useAuthStore.getState().isAuthenticated) {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/account/link-oauth`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${useAuthStore.getState().accessToken}`
+                        },
+                        body: JSON.stringify({
+                            provider,
+                            code,
+                            redirect_uri: redirectUri
+                        }),
+                    });
+
+                    const data = await response.json();
+
+                    if (!data.success) {
+                        setError(data.error?.message || data.error_description || 'Link failed');
+                        return;
+                    }
+
+                    // Link successful, redirect to home (settings)
+                    navigate('/');
+                    return;
+                }
+
+                // Normal Login Flow
                 const response = await fetch(`${API_BASE_URL}/api/v1/auth/oauth/${provider}/callback`, {
                     method: 'POST',
                     headers: {
