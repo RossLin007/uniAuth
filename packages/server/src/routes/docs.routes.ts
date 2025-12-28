@@ -629,6 +629,29 @@ docsRouter.get(
     '/docs',
     swaggerUI({
         url: '/docs/openapi.json',
+        manuallySwaggerUIHtml: () => {
+            const CDN_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14';
+            return `
+                <div id="swagger-ui"></div>
+                <link rel="stylesheet" href="${CDN_BASE}/swagger-ui.min.css" />
+                <script src="${CDN_BASE}/swagger-ui-bundle.min.js" crossorigin="anonymous"></script>
+                <script src="${CDN_BASE}/swagger-ui-standalone-preset.min.js" crossorigin="anonymous"></script>
+                <script>
+                    window.onload = () => {
+                        window.ui = SwaggerUIBundle({
+                            url: '/docs/openapi.json',
+                            dom_id: '#swagger-ui',
+                            deepLinking: true,
+                            presets: [
+                                SwaggerUIBundle.presets.apis,
+                                SwaggerUIStandalonePreset
+                            ],
+                            layout: "StandaloneLayout"
+                        })
+                    }
+                </script>
+            `;
+        }
     })
 );
 

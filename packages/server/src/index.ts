@@ -61,7 +61,7 @@ app.use(
             ? 'max-age=31536000; includeSubDomains'
             : undefined,
         xContentTypeOptions: 'nosniff',
-        xFrameOptions: 'DENY',
+        xFrameOptions: env.NODE_ENV === 'production' ? 'DENY' : undefined,
         xXssProtection: '1; mode=block',
         contentSecurityPolicy: env.NODE_ENV === 'production' ? {
             defaultSrc: ["'self'"],

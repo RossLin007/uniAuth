@@ -37,15 +37,16 @@ export function Layout() {
     const NavLinkItem = ({ item }: { item: NavItem }) => {
         const Icon = item.icon;
         const isActive = location.pathname === item.path ||
-            (item.path === '/dashboard' && location.pathname === '/');
+            (item.path === '/dashboard' && location.pathname === '/') ||
+            (item.path === '/docs' && location.pathname.startsWith('/docs'));
 
         return (
             <NavLink
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                        ? 'bg-blue-600 text-white'
-                        : `${textSecondary} hover:bg-slate-700/50 hover:text-white`
+                    ? 'bg-blue-600 text-white'
+                    : `${textSecondary} hover:bg-slate-700/50 hover:text-white`
                     }`}
             >
                 <Icon className="h-5 w-5" />

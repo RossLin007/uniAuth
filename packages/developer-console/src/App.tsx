@@ -38,7 +38,7 @@ function AppRoutes() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/apps" element={<AppsPage />} />
-        <Route path="/docs" element={<DocsPage />} />
+        <Route path="/docs/:section?" element={<DocsPage />} />
       </Route>
 
       {/* Catch-all route - redirect to home */}
