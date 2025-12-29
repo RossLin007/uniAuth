@@ -16,7 +16,10 @@
         "error": "Error",
         "warning": "Warning",
         "actions": "Actions",
-        "confirmDelete": "Are you sure you want to delete? This action cannot be undone."
+        "confirmDelete": "Are you sure you want to delete? This action cannot be undone.",
+        "user": "User",
+        "noContactInfo": "No email or phone",
+        "comingSoon": "Coming Soon"
     },
     "auth": {
         "login": "Login",
@@ -41,7 +44,8 @@
     "nav": {
         "dashboard": "Dashboard",
         "apps": "Applications",
-        "docs": "Documentation"
+        "docs": "Documentation",
+        "settings": "Settings"
     },
     "dashboard": {
         "title": "Developer Console",
@@ -241,5 +245,19 @@
         "saveError": "Failed to save branding",
         "resetSuccess": "Branding reset to defaults",
         "resetError": "Failed to reset branding"
+    },
+    "settings": {
+        "subtitle": "Manage your account preferences",
+        "profile": "Profile",
+        "appearance": "Appearance",
+        "theme": "Theme",
+        "themeDesc": "Choose your preferred color scheme",
+        "language": "Language",
+        "languageDesc": "Select your preferred language",
+        "security": "Security",
+        "mfa": "Two-Factor Authentication",
+        "mfaDesc": "Add an extra layer of security to your account",
+        "sessions": "Active Sessions",
+        "sessionsDesc": "Manage your active login sessions"
     }
 }

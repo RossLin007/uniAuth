@@ -4,7 +4,7 @@
  *
  * Usage:
  * ```typescript
- * import { UniAuthClient } from '@uniauth/client';
+ * import { UniAuthClient } from '@55387.ai/uniauth-client';
  *
  * const auth = new UniAuthClient({
  *   baseUrl: 'https://auth.example.com',
@@ -74,6 +74,12 @@ export interface LoginResult {
     refresh_token: string;
     expires_in: number;
     is_new_user: boolean;
+    /** MFA is required, use mfa_token with verifyMFA() */
+    mfa_required?: boolean;
+    /** Temporary token for MFA verification */
+    mfa_token?: string;
+    /** Available MFA methods */
+    mfa_methods?: string[];
 }
 
 export interface SendCodeResult {
@@ -93,6 +99,79 @@ export interface ApiResponse<T> {
     error?: AuthError;
 }
 
+/**
+ * OAuth Provider Information
+ * OAuth 提供商信息
+ */
+export interface OAuthProvider {
+    id: string;
+    name: string;
+    enabled: boolean;
+    icon?: string;
+}
+
+/**
+ * Auth state change callback
+ * 认证状态变更回调
+ */
+export type AuthStateChangeCallback = (user: UserInfo | null, isAuthenticated: boolean) => void;
+
+/**
+ * Error codes for UniAuth operations
+ * UniAuth 操作错误码
+ */
+export const AuthErrorCode = {
+    // Authentication errors
+    SEND_CODE_FAILED: 'SEND_CODE_FAILED',
+    VERIFY_FAILED: 'VERIFY_FAILED',
+    LOGIN_FAILED: 'LOGIN_FAILED',
+    OAUTH_FAILED: 'OAUTH_FAILED',
+    MFA_REQUIRED: 'MFA_REQUIRED',
+    MFA_FAILED: 'MFA_FAILED',
+    REGISTER_FAILED: 'REGISTER_FAILED',
+
+    // Token errors
+    NOT_AUTHENTICATED: 'NOT_AUTHENTICATED',
+    TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+    REFRESH_FAILED: 'REFRESH_FAILED',
+
+    // Configuration errors
+    CONFIG_ERROR: 'CONFIG_ERROR',
+    SSO_NOT_CONFIGURED: 'SSO_NOT_CONFIGURED',
+    INVALID_STATE: 'INVALID_STATE',
+
+    // Network errors
+    NETWORK_ERROR: 'NETWORK_ERROR',
+    TIMEOUT: 'TIMEOUT',
+    INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const;
+
+export type AuthErrorCodeType = typeof AuthErrorCode[keyof typeof AuthErrorCode];
+
+/**
+ * Custom error class for UniAuth operations
+ * UniAuth 操作自定义错误类
+ */
+export class UniAuthError extends Error {
+    code: AuthErrorCodeType | string;
+    statusCode?: number;
+    details?: unknown;
+
+    constructor(code: AuthErrorCodeType | string, message: string, statusCode?: number, details?: unknown) {
+        super(message);
+        this.name = 'UniAuthError';
+        this.code = code;
+        this.statusCode = statusCode;
+        this.details = details;
+
+        // Maintain proper stack trace for where error was thrown
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, UniAuthError);
+        }
+    }
+}
+
+
 export interface OAuth2AuthorizeOptions {
     redirectUri: string;
     scope?: string;
@@ -106,6 +185,34 @@ export interface OAuth2TokenResult {
     token_type: string;
     expires_in: number;
     refresh_token?: string;
+}
+
+/**
+ * SSO Configuration
+ * SSO 配置
+ */
+export interface SSOConfig {
+    /** SSO service URL (e.g., https://sso.example.com) */
+    ssoUrl: string;
+    /** OAuth client ID for this application */
+    clientId: string;
+    /** Redirect URI after SSO login */
+    redirectUri: string;
+    /** OAuth scope (default: 'openid profile email') */
+    scope?: string;
+}
+
+/**
+ * SSO Login Options
+ * SSO 登录选项
+ */
+export interface SSOLoginOptions {
+    /** Use PKCE (recommended, default: true) */
+    usePKCE?: boolean;
+    /** Custom state parameter */
+    state?: string;
+    /** Whether to use popup instead of redirect */
+    usePopup?: boolean;
 }
 
 // Token storage
@@ -237,14 +344,23 @@ export class UniAuthClient {
     /**
      * Send verification code to phone number
      * 发送验证码到手机号
+     * 
+     * @param phone - Phone number
+     * @param type - Purpose of the verification code
+     * @param captchaToken - Captcha verification token from slider captcha
      */
     async sendCode(
         phone: string,
-        type: 'login' | 'register' | 'reset' = 'login'
+        type: 'login' | 'register' | 'reset' = 'login',
+        captchaToken?: string
     ): Promise<SendCodeResult> {
-        const response = await this.request<SendCodeResult>('/api/v1/auth/send-code', {
+        const response = await this.request<SendCodeResult>('/api/v1/auth/phone/send-code', {
             method: 'POST',
-            body: JSON.stringify({ phone, type }),
+            body: JSON.stringify({
+                phone,
+                type,
+                captcha_token: captchaToken
+            }),
         });
 
         if (!response.success || !response.data) {
@@ -257,14 +373,19 @@ export class UniAuthClient {
     /**
      * Send verification code to email
      * 发送验证码到邮箱
+     * 
+     * @param email - Email address
+     * @param type - Purpose of the verification code  
+     * @param captchaToken - Captcha verification token from slider captcha
      */
     async sendEmailCode(
         email: string,
-        type: 'login' | 'register' | 'reset' | 'email_verify' = 'login'
+        type: 'login' | 'register' | 'reset' | 'email_verify' = 'login',
+        captchaToken?: string
     ): Promise<SendCodeResult> {
-        const response = await this.request<SendCodeResult>('/api/v1/auth/send-code', {
+        const response = await this.request<SendCodeResult>('/api/v1/auth/email/send-code', {
             method: 'POST',
-            body: JSON.stringify({ email, type }),
+            body: JSON.stringify({ email, type, captcha_token: captchaToken }),
         });
 
         if (!response.success || !response.data) {
@@ -279,7 +400,7 @@ export class UniAuthClient {
      * 使用手机验证码登录
      */
     async loginWithCode(phone: string, code: string): Promise<LoginResult> {
-        const response = await this.request<LoginResult>('/api/v1/auth/verify-code', {
+        const response = await this.request<LoginResult>('/api/v1/auth/phone/verify', {
             method: 'POST',
             body: JSON.stringify({ phone, code }),
         });
@@ -288,9 +409,12 @@ export class UniAuthClient {
             throw this.createError(response.error?.code || 'VERIFY_FAILED', response.error?.message || 'Failed to verify code');
         }
 
-        // Store tokens
-        this.storage.setAccessToken(response.data.access_token);
-        this.storage.setRefreshToken(response.data.refresh_token);
+        // Store tokens if not MFA required
+        if (!response.data.mfa_required) {
+            this.storage.setAccessToken(response.data.access_token);
+            this.storage.setRefreshToken(response.data.refresh_token);
+            this.notifyAuthStateChange(response.data.user);
+        }
 
         return response.data;
     }
@@ -300,7 +424,7 @@ export class UniAuthClient {
      * 使用邮箱验证码登录
      */
     async loginWithEmailCode(email: string, code: string): Promise<LoginResult> {
-        const response = await this.request<LoginResult>('/api/v1/auth/verify-code', {
+        const response = await this.request<LoginResult>('/api/v1/auth/email/verify', {
             method: 'POST',
             body: JSON.stringify({ email, code }),
         });
@@ -309,9 +433,12 @@ export class UniAuthClient {
             throw this.createError(response.error?.code || 'VERIFY_FAILED', response.error?.message || 'Failed to verify code');
         }
 
-        // Store tokens
-        this.storage.setAccessToken(response.data.access_token);
-        this.storage.setRefreshToken(response.data.refresh_token);
+        // Store tokens if not MFA required
+        if (!response.data.mfa_required) {
+            this.storage.setAccessToken(response.data.access_token);
+            this.storage.setRefreshToken(response.data.refresh_token);
+            this.notifyAuthStateChange(response.data.user);
+        }
 
         return response.data;
     }
@@ -321,7 +448,7 @@ export class UniAuthClient {
      * 使用邮箱密码登录
      */
     async loginWithEmail(email: string, password: string): Promise<LoginResult> {
-        const response = await this.request<LoginResult>('/api/v1/auth/login', {
+        const response = await this.request<LoginResult>('/api/v1/auth/email/login', {
             method: 'POST',
             body: JSON.stringify({ email, password }),
         });
@@ -330,9 +457,12 @@ export class UniAuthClient {
             throw this.createError(response.error?.code || 'LOGIN_FAILED', response.error?.message || 'Failed to login');
         }
 
-        // Store tokens
-        this.storage.setAccessToken(response.data.access_token);
-        this.storage.setRefreshToken(response.data.refresh_token);
+        // Store tokens if not MFA required
+        if (!response.data.mfa_required) {
+            this.storage.setAccessToken(response.data.access_token);
+            this.storage.setRefreshToken(response.data.refresh_token);
+            this.notifyAuthStateChange(response.data.user);
+        }
 
         return response.data;
     }
@@ -351,12 +481,216 @@ export class UniAuthClient {
             throw this.createError(response.error?.code || 'OAUTH_FAILED', response.error?.message || 'OAuth callback failed');
         }
 
-        // Store tokens
-        this.storage.setAccessToken(response.data.access_token);
-        this.storage.setRefreshToken(response.data.refresh_token);
+        // Store tokens (if not MFA required)
+        if (!response.data.mfa_required) {
+            this.storage.setAccessToken(response.data.access_token);
+            this.storage.setRefreshToken(response.data.refresh_token);
+            this.notifyAuthStateChange(response.data.user);
+        }
 
         return response.data;
     }
+
+    // ============================================
+    // Email Registration / 邮箱注册
+    // ============================================
+
+    /**
+     * Register with email and password
+     * 使用邮箱密码注册
+     */
+    async registerWithEmail(email: string, password: string, nickname?: string): Promise<LoginResult> {
+        const response = await this.request<LoginResult>('/api/v1/auth/email/register', {
+            method: 'POST',
+            body: JSON.stringify({ email, password, nickname }),
+        });
+
+        if (!response.success || !response.data) {
+            throw this.createError(response.error?.code || 'REGISTER_FAILED', response.error?.message || 'Failed to register');
+        }
+
+        // Store tokens
+        this.storage.setAccessToken(response.data.access_token);
+        this.storage.setRefreshToken(response.data.refresh_token);
+        this.notifyAuthStateChange(response.data.user);
+
+        return response.data;
+    }
+
+    // ============================================
+    // MFA (Multi-Factor Authentication) / 多因素认证
+    // ============================================
+
+    /**
+     * Verify MFA code to complete login
+     * 验证 MFA 验证码完成登录
+     * 
+     * Call this after login returns mfa_required: true
+     * 当登录返回 mfa_required: true 时调用此方法
+     * 
+     * @example
+     * ```typescript
+     * const result = await auth.loginWithCode(phone, code);
+     * if (result.mfa_required) {
+     *   const mfaCode = prompt('Enter MFA code:');
+     *   const finalResult = await auth.verifyMFA(result.mfa_token!, mfaCode);
+     * }
+     * ```
+     */
+    async verifyMFA(mfaToken: string, code: string): Promise<LoginResult> {
+        const response = await this.request<LoginResult>('/api/v1/auth/mfa/verify-login', {
+            method: 'POST',
+            body: JSON.stringify({ mfa_token: mfaToken, code }),
+        });
+
+        if (!response.success || !response.data) {
+            throw this.createError(response.error?.code || 'MFA_FAILED', response.error?.message || 'MFA verification failed');
+        }
+
+        // Store tokens
+        this.storage.setAccessToken(response.data.access_token);
+        this.storage.setRefreshToken(response.data.refresh_token);
+        this.notifyAuthStateChange(response.data.user);
+
+        return response.data;
+    }
+
+    // ============================================
+    // Social Login / 社交登录
+    // ============================================
+
+    /**
+     * Get available OAuth providers
+     * 获取可用的 OAuth 提供商列表
+     */
+    async getOAuthProviders(): Promise<OAuthProvider[]> {
+        const response = await this.request<{ providers: OAuthProvider[] }>('/api/v1/auth/oauth/providers', {
+            method: 'GET',
+        });
+
+        if (!response.success || !response.data) {
+            return [];
+        }
+
+        return response.data.providers || [];
+    }
+
+    /**
+     * Start social login (redirect to OAuth provider)
+     * 开始社交登录（重定向到 OAuth 提供商）
+     * 
+     * @param provider - OAuth provider ID (e.g., 'google', 'github', 'wechat')
+     * @param redirectUri - Where to redirect after OAuth (optional, uses default)
+     * 
+     * @example
+     * ```typescript
+     * // Redirect user to Google login
+     * auth.startSocialLogin('google');
+     * ```
+     */
+    startSocialLogin(provider: string, redirectUri?: string): void {
+        const params = new URLSearchParams();
+        if (redirectUri) {
+            params.set('redirect_uri', redirectUri);
+        }
+
+        const query = params.toString();
+        const url = `${this.config.baseUrl}/api/v1/auth/oauth/${provider}/authorize${query ? '?' + query : ''}`;
+
+        if (typeof window !== 'undefined') {
+            window.location.href = url;
+        }
+    }
+
+    // ============================================
+    // Auth State Management / 认证状态管理
+    // ============================================
+
+    private authStateCallbacks: AuthStateChangeCallback[] = [];
+    private currentUser: UserInfo | null = null;
+
+    /**
+     * Subscribe to auth state changes
+     * 订阅认证状态变更
+     * 
+     * @returns Unsubscribe function
+     * 
+     * @example
+     * ```typescript
+     * const unsubscribe = auth.onAuthStateChange((user, isAuthenticated) => {
+     *   if (isAuthenticated) {
+     *     console.log('User logged in:', user);
+     *   } else {
+     *     console.log('User logged out');
+     *   }
+     * });
+     * 
+     * // Later, to unsubscribe:
+     * unsubscribe();
+     * ```
+     */
+    onAuthStateChange(callback: AuthStateChangeCallback): () => void {
+        this.authStateCallbacks.push(callback);
+
+        // Return unsubscribe function
+        return () => {
+            const index = this.authStateCallbacks.indexOf(callback);
+            if (index !== -1) {
+                this.authStateCallbacks.splice(index, 1);
+            }
+        };
+    }
+
+    /**
+     * Notify all subscribers of auth state change
+     * 通知所有订阅者认证状态变更
+     */
+    private notifyAuthStateChange(user: UserInfo | null): void {
+        this.currentUser = user;
+        const isAuthenticated = this.isAuthenticated();
+
+        for (const callback of this.authStateCallbacks) {
+            try {
+                callback(user, isAuthenticated);
+            } catch (error) {
+                console.error('Auth state callback error:', error);
+            }
+        }
+    }
+
+    /**
+     * Get cached current user (sync, may be stale)
+     * 获取缓存的当前用户（同步，可能过时）
+     */
+    getCachedUser(): UserInfo | null {
+        return this.currentUser;
+    }
+
+    /**
+     * Get access token synchronously (without refresh check)
+     * 同步获取访问令牌（不检查刷新）
+     */
+    getAccessTokenSync(): string | null {
+        return this.storage.getAccessToken();
+    }
+
+    /**
+     * Check if current token is valid (not expired)
+     * 检查当前令牌是否有效（未过期）
+     */
+    isTokenValid(): boolean {
+        const token = this.storage.getAccessToken();
+        if (!token) return false;
+
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const exp = payload.exp * 1000;
+            return Date.now() < exp;
+        } catch {
+            return false;
+        }
+    }
+
 
     /**
      * Get current user info
@@ -449,6 +783,7 @@ export class UniAuthClient {
             });
         } finally {
             this.storage.clear();
+            this.notifyAuthStateChange(null);
         }
     }
 
@@ -463,6 +798,7 @@ export class UniAuthClient {
             });
         } finally {
             this.storage.clear();
+            this.notifyAuthStateChange(null);
         }
     }
 
@@ -538,6 +874,272 @@ export class UniAuthClient {
         }
 
         const response = await fetchWithRetry(`${this.config.baseUrl}/api/v1/oauth2/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+            maxRetries: this.config.enableRetry ? 3 : 0,
+            timeout: this.config.timeout,
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw this.createError(data.error, data.error_description || 'Token exchange failed');
+        }
+
+        return data as OAuth2TokenResult;
+    }
+
+    // ============================================
+    // SSO Methods (Cross-Domain Single Sign-On)
+    // SSO 方法（跨域单点登录）
+    // ============================================
+
+    private ssoConfig: SSOConfig | null = null;
+
+    /**
+     * Configure SSO settings
+     * 配置 SSO 设置
+     * 
+     * @example
+     * ```typescript
+     * auth.configureSso({
+     *   ssoUrl: 'https://sso.55387.xyz',
+     *   clientId: 'my-app',
+     *   redirectUri: 'https://my-app.com/auth/callback',
+     * });
+     * ```
+     */
+    configureSso(config: SSOConfig): void {
+        this.ssoConfig = {
+            scope: 'openid profile email',
+            ...config,
+        };
+    }
+
+    /**
+     * Start SSO login flow
+     * 开始 SSO 登录流程
+     * 
+     * This will redirect the user to the SSO service.
+     * If the user already has an SSO session, they'll be automatically logged in (silent auth).
+     * 
+     * @example
+     * ```typescript
+     * // Simple usage - redirects to SSO
+     * auth.loginWithSSO();
+     * 
+     * // With options
+     * auth.loginWithSSO({ usePKCE: true });
+     * ```
+     */
+    loginWithSSO(options: SSOLoginOptions = {}): void {
+        if (!this.ssoConfig) {
+            throw this.createError('SSO_NOT_CONFIGURED', 'SSO is not configured. Call configureSso() first.');
+        }
+
+        const { usePKCE = true, state } = options;
+
+        // Generate state for CSRF protection if not provided
+        const stateValue = state || this.generateRandomState();
+        this.storeState(stateValue);
+
+        // Build authorize URL
+        const params = new URLSearchParams({
+            client_id: this.ssoConfig.clientId,
+            redirect_uri: this.ssoConfig.redirectUri,
+            response_type: 'code',
+            scope: this.ssoConfig.scope || 'openid profile email',
+            state: stateValue,
+        });
+
+        // PKCE support
+        if (usePKCE) {
+            const verifier = generateCodeVerifier();
+            storeCodeVerifier(verifier);
+            generateCodeChallenge(verifier).then(challenge => {
+                params.set('code_challenge', challenge);
+                params.set('code_challenge_method', 'S256');
+
+                // Redirect to SSO
+                window.location.href = `${this.ssoConfig!.ssoUrl}/api/v1/oauth2/authorize?${params.toString()}`;
+            });
+        } else {
+            // Redirect to SSO without PKCE
+            window.location.href = `${this.ssoConfig.ssoUrl}/api/v1/oauth2/authorize?${params.toString()}`;
+        }
+    }
+
+    /**
+     * Check if current URL is an SSO callback
+     * 检查当前 URL 是否是 SSO 回调
+     * 
+     * @example
+     * ```typescript
+     * if (auth.isSSOCallback()) {
+     *   await auth.handleSSOCallback();
+     * }
+     * ```
+     */
+    isSSOCallback(): boolean {
+        if (typeof window === 'undefined') return false;
+        const params = new URLSearchParams(window.location.search);
+        return !!(params.get('code') && params.get('state'));
+    }
+
+    /**
+     * Handle SSO callback and exchange code for tokens
+     * 处理 SSO 回调并交换授权码获取令牌
+     * 
+     * Call this on your callback page after SSO redirects back.
+     * 
+     * @returns LoginResult or null if callback handling failed
+     * 
+     * @example
+     * ```typescript
+     * // In your callback page component
+     * useEffect(() => {
+     *   if (auth.isSSOCallback()) {
+     *     auth.handleSSOCallback()
+     *       .then(result => {
+     *         if (result) {
+     *           navigate('/dashboard');
+     *         }
+     *       })
+     *       .catch(err => console.error('SSO login failed:', err));
+     *   }
+     * }, []);
+     * ```
+     */
+    async handleSSOCallback(): Promise<LoginResult | null> {
+        if (!this.ssoConfig) {
+            throw this.createError('SSO_NOT_CONFIGURED', 'SSO is not configured. Call configureSso() first.');
+        }
+
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const state = params.get('state');
+        const error = params.get('error');
+        const errorDescription = params.get('error_description');
+
+        // Handle OAuth error
+        if (error) {
+            throw this.createError(error, errorDescription || 'SSO login failed');
+        }
+
+        // Validate state
+        const savedState = this.getAndClearState();
+        if (state && savedState && state !== savedState) {
+            throw this.createError('INVALID_STATE', 'Invalid state parameter. Please try logging in again.');
+        }
+
+        if (!code) {
+            throw this.createError('NO_CODE', 'No authorization code received.');
+        }
+
+        // Exchange code for tokens
+        const tokenResult = await this.exchangeSSOCode(code, this.ssoConfig.redirectUri);
+
+        // Store tokens
+        this.storage.setAccessToken(tokenResult.access_token);
+        if (tokenResult.refresh_token) {
+            this.storage.setRefreshToken(tokenResult.refresh_token);
+        }
+
+        // Get user info
+        const user = await this.getCurrentUser();
+
+        // Clean up URL (remove code and state from URL)
+        if (typeof window !== 'undefined' && window.history) {
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+        }
+
+        return {
+            user: user || { id: '', phone: null, email: null, nickname: null, avatar_url: null },
+            access_token: tokenResult.access_token,
+            refresh_token: tokenResult.refresh_token || '',
+            expires_in: tokenResult.expires_in,
+            is_new_user: false,
+        };
+    }
+
+    /**
+     * Check if user can be silently authenticated via SSO
+     * 检查用户是否可以通过 SSO 静默登录
+     * 
+     * This starts a silent SSO flow using an iframe to check if user has an active SSO session.
+     * 
+     * @returns Promise that resolves to true if silent auth succeeded
+     */
+    async checkSSOSession(): Promise<boolean> {
+        if (!this.ssoConfig) {
+            return false;
+        }
+
+        // If already authenticated, no need to check
+        if (this.isAuthenticated()) {
+            return true;
+        }
+
+        // For now, we can't do true silent auth without iframe/popup
+        // The simplest approach is to redirect and let SSO handle it
+        return false;
+    }
+
+    // Helper methods for SSO
+    private generateRandomState(): string {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
+    private storeState(state: string): void {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('uniauth_sso_state', state);
+        }
+    }
+
+    private getAndClearState(): string | null {
+        if (typeof localStorage === 'undefined') return null;
+        const state = localStorage.getItem('uniauth_sso_state');
+        localStorage.removeItem('uniauth_sso_state');
+        return state;
+    }
+
+    /**
+     * Exchange SSO authorization code for tokens
+     * This is a private method used internally by handleSSOCallback
+     */
+    private async exchangeSSOCode(
+        code: string,
+        redirectUri: string
+    ): Promise<OAuth2TokenResult> {
+        const baseUrl = this.ssoConfig?.ssoUrl || this.config.baseUrl;
+        const clientId = this.ssoConfig?.clientId || this.config.clientId;
+
+        if (!clientId) {
+            throw this.createError('CONFIG_ERROR', 'clientId is required for OAuth2 flow');
+        }
+
+        const body: Record<string, string> = {
+            grant_type: 'authorization_code',
+            client_id: clientId,
+            code,
+            redirect_uri: redirectUri,
+        };
+
+        // Check for PKCE code_verifier
+        const codeVerifier = getAndClearCodeVerifier();
+        if (codeVerifier) {
+            body.code_verifier = codeVerifier;
+        }
+
+        const response = await fetchWithRetry(`${baseUrl}/api/v1/oauth2/token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -671,10 +1273,8 @@ export class UniAuthClient {
      * Create an error object
      * 创建错误对象
      */
-    private createError(code: string, message: string): Error {
-        const error = new Error(message);
-        (error as any).code = code;
-        return error;
+    private createError(code: string, message: string, statusCode?: number): UniAuthError {
+        return new UniAuthError(code, message, statusCode);
     }
 }
 
@@ -689,3 +1289,4 @@ export {
 
 // Default export
 export default UniAuthClient;
+

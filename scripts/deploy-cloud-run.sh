@@ -49,23 +49,20 @@ deploy_api() {
     rm -f env.yaml
 }
 
-# 2. Deploy Web Frontend
+# 2. Deploy Web Frontend (auth.55387.xyz)
 deploy_web() {
-    # We need API_URL. If not deployed in this run, fetch it.
-    if [ -z "$API_URL" ]; then
-        API_URL=$(gcloud run services describe uniauth-api --region $REGION --format 'value(status.url)' 2>/dev/null || echo "")
-        if [ -z "$API_URL" ]; then
-            echo "⚠️  Warning: API Service not found. Web build might fail or point to empty API."
-        fi
-    fi
+    # Use custom domain for API instead of Cloud Run URL
+    # This ensures OAuth redirects work correctly through the custom domain
+    WEB_API_URL="${CUSTOM_API_URL:-https://sso.55387.xyz}"
 
     echo "--------------------------------------------------"
     echo "📦 Building and Deploying Web Frontend..."
     echo "--------------------------------------------------"
+    echo "Using API URL: $WEB_API_URL"
     
     # Use cloudbuild.yaml for proper build-arg support
     gcloud builds submit --config packages/web/cloudbuild.yaml \
-      --substitutions=_API_URL=$API_URL .
+      --substitutions=_API_URL=$WEB_API_URL .
 
     gcloud run deploy uniauth-web \
       --image gcr.io/$PROJECT_ID/uniauth-web:latest \
@@ -77,17 +74,18 @@ deploy_web() {
 
 # 3. Deploy Developer Console
 deploy_console() {
-    if [ -z "$API_URL" ]; then
-        API_URL=$(gcloud run services describe uniauth-api --region $REGION --format 'value(status.url)' 2>/dev/null || echo "")
-    fi
+    # Use custom domain for API instead of Cloud Run URL
+    # This ensures OAuth redirects work correctly through the custom domain
+    CONSOLE_API_URL="${CUSTOM_API_URL:-https://sso.55387.xyz}"
 
     echo "--------------------------------------------------"
     echo "📦 Building and Deploying Developer Console..."
     echo "--------------------------------------------------"
+    echo "Using API URL: $CONSOLE_API_URL"
     
     # Use cloudbuild.yaml for proper build-arg support
     gcloud builds submit --config packages/developer-console/cloudbuild.yaml \
-      --substitutions=_API_URL=$API_URL .
+      --substitutions=_API_URL=$CONSOLE_API_URL .
 
     gcloud run deploy uniauth-console \
       --image gcr.io/$PROJECT_ID/uniauth-console:latest \

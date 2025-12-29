@@ -144,12 +144,12 @@ Authorization: Bearer <access_token>
             },
         },
 
-        // Authentication
-        '/api/v1/auth/send-code': {
+        // Authentication - Phone
+        '/api/v1/auth/phone/send-code': {
             post: {
                 tags: ['Authentication'],
-                summary: '发送验证码 / Send Verification Code',
-                description: '向手机或邮箱发送验证码',
+                summary: '发送手机验证码 / Send Phone Verification Code',
+                description: '向手机发送验证码',
                 requestBody: {
                     required: true,
                     content: {
@@ -158,17 +158,8 @@ Authorization: Bearer <access_token>
                                 type: 'object',
                                 properties: {
                                     phone: { type: 'string', example: '+8613800138000' },
-                                    email: { type: 'string', format: 'email' },
-                                    type: {
-                                        type: 'string',
-                                        enum: ['login', 'register', 'reset', 'email_verify'],
-                                        default: 'login'
-                                    },
                                 },
-                                oneOf: [
-                                    { required: ['phone'] },
-                                    { required: ['email'] },
-                                ],
+                                required: ['phone'],
                             },
                         },
                     },
@@ -200,11 +191,11 @@ Authorization: Bearer <access_token>
                 },
             },
         },
-        '/api/v1/auth/verify-code': {
+        '/api/v1/auth/phone/verify': {
             post: {
                 tags: ['Authentication'],
-                summary: '验证码登录 / Login with Code',
-                description: '使用验证码登录或注册',
+                summary: '手机验证码登录 / Phone Code Login',
+                description: '使用手机验证码登录或注册',
                 requestBody: {
                     required: true,
                     content: {
@@ -213,10 +204,9 @@ Authorization: Bearer <access_token>
                                 type: 'object',
                                 properties: {
                                     phone: { type: 'string', example: '+8613800138000' },
-                                    email: { type: 'string', format: 'email' },
                                     code: { type: 'string', example: '123456' },
                                 },
-                                required: ['code'],
+                                required: ['phone', 'code'],
                             },
                         },
                     },
@@ -236,10 +226,80 @@ Authorization: Bearer <access_token>
                 },
             },
         },
-        '/api/v1/auth/login': {
+        // Authentication - Email
+        '/api/v1/auth/email/send-code': {
             post: {
                 tags: ['Authentication'],
-                summary: '邮箱密码登录 / Email Login',
+                summary: '发送邮箱验证码 / Send Email Verification Code',
+                description: '向邮箱发送验证码',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    email: { type: 'string', format: 'email' },
+                                    type: {
+                                        type: 'string',
+                                        enum: ['login', 'register', 'reset', 'email_verify'],
+                                        default: 'login'
+                                    },
+                                },
+                                required: ['email'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: '验证码发送成功',
+                    },
+                    429: {
+                        description: '请求过于频繁',
+                    },
+                },
+            },
+        },
+        '/api/v1/auth/email/verify': {
+            post: {
+                tags: ['Authentication'],
+                summary: '邮箱验证码登录 / Email Code Login',
+                description: '使用邮箱验证码登录',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    email: { type: 'string', format: 'email' },
+                                    code: { type: 'string', example: '123456' },
+                                },
+                                required: ['email', 'code'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: '登录成功',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/LoginResponse' },
+                            },
+                        },
+                    },
+                    401: {
+                        description: '验证码错误或已过期',
+                    },
+                },
+            },
+        },
+        '/api/v1/auth/email/login': {
+            post: {
+                tags: ['Authentication'],
+                summary: '邮箱密码登录 / Email Password Login',
                 requestBody: {
                     required: true,
                     content: {
@@ -337,6 +397,118 @@ Authorization: Bearer <access_token>
                 },
             },
         },
+        '/api/v1/auth/logout-all': {
+            post: {
+                tags: ['Authentication'],
+                summary: '全设备登出 / Logout All Devices',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: {
+                        description: '全部设备登出成功',
+                    },
+                },
+            },
+        },
+        '/api/v1/auth/email/register': {
+            post: {
+                tags: ['Authentication'],
+                summary: '邮箱注册 / Email Registration',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    email: { type: 'string', format: 'email' },
+                                    password: { type: 'string', minLength: 8 },
+                                    code: { type: 'string', description: '邮箱验证码' },
+                                },
+                                required: ['email', 'password'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: '注册成功',
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/LoginResponse' },
+                            },
+                        },
+                    },
+                    400: {
+                        description: '邮箱已存在或验证码错误',
+                    },
+                },
+            },
+        },
+        '/api/v1/auth/verify': {
+            post: {
+                tags: ['Authentication'],
+                summary: '验证 Token / Verify Token',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    token: { type: 'string' },
+                                },
+                                required: ['token'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'Token 有效',
+                    },
+                    401: {
+                        description: 'Token 无效或已过期',
+                    },
+                },
+            },
+        },
+        // OAuth Social Login
+        '/api/v1/auth/google': {
+            get: {
+                tags: ['Authentication'],
+                summary: 'Google OAuth 登录 / Google OAuth Login',
+                description: '重定向到 Google 登录页面',
+                responses: {
+                    302: {
+                        description: '重定向到 Google',
+                    },
+                },
+            },
+        },
+        '/api/v1/auth/github': {
+            get: {
+                tags: ['Authentication'],
+                summary: 'GitHub OAuth 登录 / GitHub OAuth Login',
+                description: '重定向到 GitHub 登录页面',
+                responses: {
+                    302: {
+                        description: '重定向到 GitHub',
+                    },
+                },
+            },
+        },
+        '/api/v1/auth/wechat': {
+            get: {
+                tags: ['Authentication'],
+                summary: '微信 OAuth 登录 / WeChat OAuth Login',
+                description: '重定向到微信登录页面',
+                responses: {
+                    302: {
+                        description: '重定向到微信',
+                    },
+                },
+            },
+        },
 
         // User
         '/api/v1/user/me': {
@@ -390,6 +562,361 @@ Authorization: Bearer <access_token>
                 responses: {
                     200: {
                         description: '成功',
+                    },
+                },
+            },
+        },
+        '/api/v1/user/sessions/{id}': {
+            delete: {
+                tags: ['User'],
+                summary: '撤销特定会话 / Revoke Session',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+                ],
+                responses: {
+                    200: {
+                        description: '撤销成功',
+                    },
+                    404: {
+                        description: '会话不存在',
+                    },
+                },
+            },
+        },
+        '/api/v1/user/bindings': {
+            get: {
+                tags: ['User'],
+                summary: '获取账户绑定 / Get Account Bindings',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: {
+                        description: '成功',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: {
+                                            type: 'array',
+                                            items: {
+                                                type: 'object',
+                                                properties: {
+                                                    provider: { type: 'string' },
+                                                    provider_user_id: { type: 'string' },
+                                                    created_at: { type: 'string', format: 'date-time' },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/v1/user/unbind/{provider}': {
+            delete: {
+                tags: ['User'],
+                summary: '解绑 OAuth 账户 / Unbind OAuth',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    { name: 'provider', in: 'path', required: true, schema: { type: 'string', enum: ['google', 'github', 'wechat'] } },
+                ],
+                responses: {
+                    200: {
+                        description: '解绑成功',
+                    },
+                    400: {
+                        description: '无法解绑（唯一登录方式）',
+                    },
+                },
+            },
+        },
+        '/api/v1/user/bind/phone': {
+            post: {
+                tags: ['User'],
+                summary: '绑定手机号 / Bind Phone',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    phone: { type: 'string' },
+                                    code: { type: 'string' },
+                                },
+                                required: ['phone', 'code'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: '绑定成功',
+                    },
+                    400: {
+                        description: '验证码错误或手机号已被使用',
+                    },
+                },
+            },
+        },
+        '/api/v1/user/bind/email': {
+            post: {
+                tags: ['User'],
+                summary: '绑定邮箱 / Bind Email',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    email: { type: 'string', format: 'email' },
+                                    code: { type: 'string' },
+                                },
+                                required: ['email', 'code'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: '绑定成功',
+                    },
+                    400: {
+                        description: '验证码错误或邮箱已被使用',
+                    },
+                },
+            },
+        },
+        '/api/v1/user/authorized-apps': {
+            get: {
+                tags: ['User'],
+                summary: '获取已授权应用 / Get Authorized Apps',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: {
+                        description: '成功',
+                    },
+                },
+            },
+        },
+        '/api/v1/user/authorized-apps/{clientId}': {
+            delete: {
+                tags: ['User'],
+                summary: '撤销应用授权 / Revoke App Authorization',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    { name: 'clientId', in: 'path', required: true, schema: { type: 'string' } },
+                ],
+                responses: {
+                    200: {
+                        description: '撤销成功',
+                    },
+                },
+            },
+        },
+
+        // MFA
+        '/api/v1/mfa/status': {
+            get: {
+                tags: ['MFA'],
+                summary: '获取 MFA 状态 / Get MFA Status',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: {
+                        description: '成功',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                enabled: { type: 'boolean' },
+                                                methods: { type: 'array', items: { type: 'string' } },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/v1/mfa/setup': {
+            post: {
+                tags: ['MFA'],
+                summary: '开始 MFA 设置 / Start MFA Setup',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: {
+                        description: '成功',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                secret: { type: 'string' },
+                                                qrCode: { type: 'string', description: 'Base64 QR code image' },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/v1/mfa/verify-setup': {
+            post: {
+                tags: ['MFA'],
+                summary: '验证 MFA 设置 / Verify MFA Setup',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    code: { type: 'string', minLength: 6, maxLength: 6 },
+                                },
+                                required: ['code'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'MFA 启用成功',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                recoveryCodes: { type: 'array', items: { type: 'string' } },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/v1/mfa/verify': {
+            post: {
+                tags: ['MFA'],
+                summary: '验证 MFA 代码 / Verify MFA Code',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    code: { type: 'string' },
+                                },
+                                required: ['code'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'MFA 验证成功',
+                    },
+                    400: {
+                        description: '验证码错误',
+                    },
+                },
+            },
+        },
+        '/api/v1/mfa/disable': {
+            post: {
+                tags: ['MFA'],
+                summary: '禁用 MFA / Disable MFA',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    code: { type: 'string' },
+                                },
+                                required: ['code'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'MFA 已禁用',
+                    },
+                },
+            },
+        },
+        '/api/v1/mfa/regenerate-recovery': {
+            post: {
+                tags: ['MFA'],
+                summary: '重新生成恢复码 / Regenerate Recovery Codes',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    code: { type: 'string' },
+                                },
+                                required: ['code'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: '成功',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean' },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                recoveryCodes: { type: 'array', items: { type: 'string' } },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
             },

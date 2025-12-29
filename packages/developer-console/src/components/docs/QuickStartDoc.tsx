@@ -22,7 +22,7 @@ export default function QuickStartDoc() {
                 </h3>
                 <div className={`${codeBg} rounded-lg p-4`}>
                     <code className="text-sm text-blue-500 dark:text-blue-400">
-                        pnpm add @uniauth/sdk
+                        pnpm add @55387.ai/uniauth-client
                     </code>
                 </div>
             </div>
@@ -34,7 +34,7 @@ export default function QuickStartDoc() {
                 </h3>
                 <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
                     <pre className="text-xs text-slate-600 dark:text-slate-400">
-                        {`import { UniAuth } from '@uniauth/sdk';
+                        {`import { UniAuth } from '@55387.ai/uniauth-client';
 
 const auth = new UniAuth({
     clientId: 'your-client-id',

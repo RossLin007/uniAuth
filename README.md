@@ -158,9 +158,9 @@ Sentry error tracking initialized
 
 | Package | Description |
 |---------|-------------|
-| `@uniauth/server` | API 服务端 |
-| `@uniauth/client` | 前端 SDK |
-| `@uniauth/server-sdk` | 后端 SDK |
+| `@uniauth/server` | API 服务端 (内部) |
+| `@55387.ai/uniauth-client` | 前端 SDK ([npm](https://www.npmjs.com/package/@55387.ai/uniauth-client)) |
+| `@55387.ai/uniauth-server` | 后端 SDK ([npm](https://www.npmjs.com/package/@55387.ai/uniauth-server)) |
 
 ---
 
@@ -169,11 +169,10 @@ Sentry error tracking initialized
 ### Frontend SDK / 前端 SDK
 
 ```typescript
-import { UniAuthClient } from '@uniauth/client';
+import { UniAuthClient } from '@55387.ai/uniauth-client';
 
 const auth = new UniAuthClient({
-  baseUrl: 'https://auth.example.com',
-  appKey: 'your-app-key',
+  baseUrl: 'https://sso.55387.xyz',
 });
 
 // 发送验证码
@@ -198,13 +197,13 @@ await auth.logout();
 ### Backend SDK / 后端 SDK
 
 ```typescript
-import { UniAuthServer } from '@uniauth/server-sdk';
+import { UniAuthServer } from '@55387.ai/uniauth-server';
 import express from 'express';
 
 const auth = new UniAuthServer({
-  baseUrl: 'https://auth.example.com',
-  appKey: 'your-app-key',
-  appSecret: 'your-app-secret',
+  baseUrl: 'https://sso.55387.xyz',
+  clientId: 'your-client-id',
+  clientSecret: 'your-client-secret',
 });
 
 const app = express();

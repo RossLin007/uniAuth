@@ -1,0 +1,1071 @@
+---
+  openapi: "3.0.3"
+  info: 
+    title: "UniAuth API"
+    description: "\n# UniAuth 统一认证服务 API\n\nUniAuth 是一个现代化的统一认证服务，支持多种登录方式和 OAuth 2.0 提供商功能。\n\n## 特性\n\n- 📱 手机验证码登录\n- 📧 邮箱密码登录\n- 🔐 OAuth 2.0 社交登录 (Google, GitHub, WeChat)\n- 🎫 JWT Token 管理\n- 🔄 Token 自动刷新\n- 📊 多设备会话管理\n- 🏢 OAuth 2.0 Provider 能力\n\n## 认证方式\n\n大多数 API 需要在请求头中携带 Bearer Token：\n\n```\nAuthorization: Bearer <access_token>\n```\n\n## 错误处理\n\n所有 API 返回统一的错误格式：\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"ERROR_CODE\",\n    \"message\": \"Human-readable error message\"\n  }\n}\n```\n        "
+    version: "1.0.0"
+    contact: 
+      name: "UniAuth Support"
+      url: "https://github.com/your-org/uniauth"
+    license: 
+      name: "MIT"
+      url: "https://opensource.org/licenses/MIT"
+  servers: 
+    - 
+      url: "http://localhost:3000"
+      description: "Development Server"
+    - 
+      url: "https://auth.example.com"
+      description: "Production Server"
+  tags: 
+    - 
+      name: "Health"
+      description: "健康检查 / Health Check"
+    - 
+      name: "Authentication"
+      description: "认证相关 / Authentication"
+    - 
+      name: "User"
+      description: "用户管理 / User Management"
+    - 
+      name: "OAuth2"
+      description: "OAuth 2.0 提供商 / OAuth 2.0 Provider"
+  paths: 
+    /health: 
+      get: 
+        tags: 
+          - "Health"
+        summary: "简单健康检查 / Simple Health Check"
+        description: "返回服务运行状态，用于负载均衡器"
+        responses: 
+          200: 
+            description: "服务正常"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    status: 
+                      type: "string"
+                      example: "ok"
+                    timestamp: 
+                      type: "string"
+                      format: "date-time"
+    /health/ready: 
+      get: 
+        tags: 
+          - "Health"
+        summary: "就绪检查 / Readiness Check"
+        description: "深度健康检查，验证数据库和 Redis 连接"
+        responses: 
+          200: 
+            description: "所有依赖正常"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    status: 
+                      type: "string"
+                      enum: 
+                        - "healthy"
+                        - "degraded"
+                    checks: 
+                      type: "object"
+                      properties: 
+                        database: 
+                          type: "object"
+                        redis: 
+                          type: "object"
+                        memory: 
+                          type: "object"
+                    version: 
+                      type: "string"
+                    uptime: 
+                      type: "number"
+          503: 
+            description: "服务降级"
+    /api/v1/auth/phone/send-code: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "发送手机验证码 / Send Phone Verification Code"
+        description: "向手机发送验证码"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  phone: 
+                    type: "string"
+                    example: "+8613800138000"
+                required: 
+                  - "phone"
+        responses: 
+          200: 
+            description: "验证码发送成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                      example: true
+                    data: 
+                      type: "object"
+                      properties: 
+                        expires_in: 
+                          type: "number"
+                          example: 300
+                        retry_after: 
+                          type: "number"
+                          example: 60
+          429: 
+            description: "请求过于频繁"
+    /api/v1/auth/phone/verify: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "手机验证码登录 / Phone Code Login"
+        description: "使用手机验证码登录或注册"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  phone: 
+                    type: "string"
+                    example: "+8613800138000"
+                  code: 
+                    type: "string"
+                    example: "123456"
+                required: 
+                  - "phone"
+                  - "code"
+        responses: 
+          200: 
+            description: "登录成功"
+            content: 
+              application/json: 
+                schema: 
+                  $ref: "#/components/schemas/LoginResponse"
+          401: 
+            description: "验证码错误或已过期"
+    /api/v1/auth/email/send-code: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "发送邮箱验证码 / Send Email Verification Code"
+        description: "向邮箱发送验证码"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  email: 
+                    type: "string"
+                    format: "email"
+                  type: 
+                    type: "string"
+                    enum: 
+                      - "login"
+                      - "register"
+                      - "reset"
+                      - "email_verify"
+                    default: "login"
+                required: 
+                  - "email"
+        responses: 
+          200: 
+            description: "验证码发送成功"
+          429: 
+            description: "请求过于频繁"
+    /api/v1/auth/email/verify: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "邮箱验证码登录 / Email Code Login"
+        description: "使用邮箱验证码登录"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  email: 
+                    type: "string"
+                    format: "email"
+                  code: 
+                    type: "string"
+                    example: "123456"
+                required: 
+                  - "email"
+                  - "code"
+        responses: 
+          200: 
+            description: "登录成功"
+            content: 
+              application/json: 
+                schema: 
+                  $ref: "#/components/schemas/LoginResponse"
+          401: 
+            description: "验证码错误或已过期"
+    /api/v1/auth/email/login: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "邮箱密码登录 / Email Password Login"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  email: 
+                    type: "string"
+                    format: "email"
+                  password: 
+                    type: "string"
+                    minLength: 8
+                required: 
+                  - "email"
+                  - "password"
+        responses: 
+          200: 
+            description: "登录成功"
+            content: 
+              application/json: 
+                schema: 
+                  $ref: "#/components/schemas/LoginResponse"
+          401: 
+            description: "邮箱或密码错误"
+    /api/v1/auth/refresh: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "刷新令牌 / Refresh Token"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  refresh_token: 
+                    type: "string"
+                required: 
+                  - "refresh_token"
+        responses: 
+          200: 
+            description: "刷新成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        access_token: 
+                          type: "string"
+                        refresh_token: 
+                          type: "string"
+                        expires_in: 
+                          type: "number"
+    /api/v1/auth/logout: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "登出 / Logout"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  refresh_token: 
+                    type: "string"
+        responses: 
+          200: 
+            description: "登出成功"
+    /api/v1/auth/logout-all: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "全设备登出 / Logout All Devices"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          200: 
+            description: "全部设备登出成功"
+    /api/v1/auth/email/register: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "邮箱注册 / Email Registration"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  email: 
+                    type: "string"
+                    format: "email"
+                  password: 
+                    type: "string"
+                    minLength: 8
+                  code: 
+                    type: "string"
+                    description: "邮箱验证码"
+                required: 
+                  - "email"
+                  - "password"
+        responses: 
+          200: 
+            description: "注册成功"
+            content: 
+              application/json: 
+                schema: 
+                  $ref: "#/components/schemas/LoginResponse"
+          400: 
+            description: "邮箱已存在或验证码错误"
+    /api/v1/auth/verify: 
+      post: 
+        tags: 
+          - "Authentication"
+        summary: "验证 Token / Verify Token"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  token: 
+                    type: "string"
+                required: 
+                  - "token"
+        responses: 
+          200: 
+            description: "Token 有效"
+          401: 
+            description: "Token 无效或已过期"
+    /api/v1/auth/google: 
+      get: 
+        tags: 
+          - "Authentication"
+        summary: "Google OAuth 登录 / Google OAuth Login"
+        description: "重定向到 Google 登录页面"
+        responses: 
+          302: 
+            description: "重定向到 Google"
+    /api/v1/auth/github: 
+      get: 
+        tags: 
+          - "Authentication"
+        summary: "GitHub OAuth 登录 / GitHub OAuth Login"
+        description: "重定向到 GitHub 登录页面"
+        responses: 
+          302: 
+            description: "重定向到 GitHub"
+    /api/v1/auth/wechat: 
+      get: 
+        tags: 
+          - "Authentication"
+        summary: "微信 OAuth 登录 / WeChat OAuth Login"
+        description: "重定向到微信登录页面"
+        responses: 
+          302: 
+            description: "重定向到微信"
+    /api/v1/user/me: 
+      get: 
+        tags: 
+          - "User"
+        summary: "获取当前用户 / Get Current User"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          200: 
+            description: "成功"
+            content: 
+              application/json: 
+                schema: 
+                  $ref: "#/components/schemas/UserResponse"
+          401: 
+            description: "未认证"
+      patch: 
+        tags: 
+          - "User"
+        summary: "更新用户资料 / Update Profile"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  nickname: 
+                    type: "string"
+                  avatar_url: 
+                    type: "string"
+                    format: "uri"
+        responses: 
+          200: 
+            description: "更新成功"
+    /api/v1/user/sessions: 
+      get: 
+        tags: 
+          - "User"
+        summary: "获取登录设备 / Get Sessions"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          200: 
+            description: "成功"
+    /api/v1/user/sessions/{id}: 
+      delete: 
+        tags: 
+          - "User"
+        summary: "撤销特定会话 / Revoke Session"
+        security: 
+          - 
+            bearerAuth: []
+        parameters: 
+          - 
+            name: "id"
+            in: "path"
+            required: true
+            schema: 
+              type: "string"
+        responses: 
+          200: 
+            description: "撤销成功"
+          404: 
+            description: "会话不存在"
+    /api/v1/user/bindings: 
+      get: 
+        tags: 
+          - "User"
+        summary: "获取账户绑定 / Get Account Bindings"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          200: 
+            description: "成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "array"
+                      items: 
+                        type: "object"
+                        properties: 
+                          provider: 
+                            type: "string"
+                          provider_user_id: 
+                            type: "string"
+                          created_at: 
+                            type: "string"
+                            format: "date-time"
+    /api/v1/user/unbind/{provider}: 
+      delete: 
+        tags: 
+          - "User"
+        summary: "解绑 OAuth 账户 / Unbind OAuth"
+        security: 
+          - 
+            bearerAuth: []
+        parameters: 
+          - 
+            name: "provider"
+            in: "path"
+            required: true
+            schema: 
+              type: "string"
+              enum: 
+                - "google"
+                - "github"
+                - "wechat"
+        responses: 
+          200: 
+            description: "解绑成功"
+          400: 
+            description: "无法解绑（唯一登录方式）"
+    /api/v1/user/bind/phone: 
+      post: 
+        tags: 
+          - "User"
+        summary: "绑定手机号 / Bind Phone"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  phone: 
+                    type: "string"
+                  code: 
+                    type: "string"
+                required: 
+                  - "phone"
+                  - "code"
+        responses: 
+          200: 
+            description: "绑定成功"
+          400: 
+            description: "验证码错误或手机号已被使用"
+    /api/v1/user/bind/email: 
+      post: 
+        tags: 
+          - "User"
+        summary: "绑定邮箱 / Bind Email"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  email: 
+                    type: "string"
+                    format: "email"
+                  code: 
+                    type: "string"
+                required: 
+                  - "email"
+                  - "code"
+        responses: 
+          200: 
+            description: "绑定成功"
+          400: 
+            description: "验证码错误或邮箱已被使用"
+    /api/v1/user/authorized-apps: 
+      get: 
+        tags: 
+          - "User"
+        summary: "获取已授权应用 / Get Authorized Apps"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          200: 
+            description: "成功"
+    /api/v1/user/authorized-apps/{clientId}: 
+      delete: 
+        tags: 
+          - "User"
+        summary: "撤销应用授权 / Revoke App Authorization"
+        security: 
+          - 
+            bearerAuth: []
+        parameters: 
+          - 
+            name: "clientId"
+            in: "path"
+            required: true
+            schema: 
+              type: "string"
+        responses: 
+          200: 
+            description: "撤销成功"
+    /api/v1/mfa/status: 
+      get: 
+        tags: 
+          - "MFA"
+        summary: "获取 MFA 状态 / Get MFA Status"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          200: 
+            description: "成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        enabled: 
+                          type: "boolean"
+                        methods: 
+                          type: "array"
+                          items: 
+                            type: "string"
+    /api/v1/mfa/setup: 
+      post: 
+        tags: 
+          - "MFA"
+        summary: "开始 MFA 设置 / Start MFA Setup"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          200: 
+            description: "成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        secret: 
+                          type: "string"
+                        qrCode: 
+                          type: "string"
+                          description: "Base64 QR code image"
+    /api/v1/mfa/verify-setup: 
+      post: 
+        tags: 
+          - "MFA"
+        summary: "验证 MFA 设置 / Verify MFA Setup"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  code: 
+                    type: "string"
+                    minLength: 6
+                    maxLength: 6
+                required: 
+                  - "code"
+        responses: 
+          200: 
+            description: "MFA 启用成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        recoveryCodes: 
+                          type: "array"
+                          items: 
+                            type: "string"
+    /api/v1/mfa/verify: 
+      post: 
+        tags: 
+          - "MFA"
+        summary: "验证 MFA 代码 / Verify MFA Code"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  code: 
+                    type: "string"
+                required: 
+                  - "code"
+        responses: 
+          200: 
+            description: "MFA 验证成功"
+          400: 
+            description: "验证码错误"
+    /api/v1/mfa/disable: 
+      post: 
+        tags: 
+          - "MFA"
+        summary: "禁用 MFA / Disable MFA"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  code: 
+                    type: "string"
+                required: 
+                  - "code"
+        responses: 
+          200: 
+            description: "MFA 已禁用"
+    /api/v1/mfa/regenerate-recovery: 
+      post: 
+        tags: 
+          - "MFA"
+        summary: "重新生成恢复码 / Regenerate Recovery Codes"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  code: 
+                    type: "string"
+                required: 
+                  - "code"
+        responses: 
+          200: 
+            description: "成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        recoveryCodes: 
+                          type: "array"
+                          items: 
+                            type: "string"
+    /api/v1/oauth2/validate: 
+      get: 
+        tags: 
+          - "OAuth2"
+        summary: "验证客户端 / Validate Client"
+        description: "验证 OAuth2 客户端信息和回调地址"
+        parameters: 
+          - 
+            name: "client_id"
+            in: "query"
+            required: true
+            schema: 
+              type: "string"
+          - 
+            name: "redirect_uri"
+            in: "query"
+            required: true
+            schema: 
+              type: "string"
+              format: "uri"
+          - 
+            name: "response_type"
+            in: "query"
+            required: true
+            schema: 
+              type: "string"
+              enum: 
+                - "code"
+          - 
+            name: "scope"
+            in: "query"
+            schema: 
+              type: "string"
+          - 
+            name: "state"
+            in: "query"
+            schema: 
+              type: "string"
+          - 
+            name: "code_challenge"
+            in: "query"
+            schema: 
+              type: "string"
+              description: "PKCE code challenge"
+          - 
+            name: "code_challenge_method"
+            in: "query"
+            schema: 
+              type: "string"
+              enum: 
+                - "S256"
+                - "plain"
+        responses: 
+          200: 
+            description: "客户端验证成功"
+          400: 
+            description: "无效的客户端或回调地址"
+    /api/v1/oauth2/authorize: 
+      post: 
+        tags: 
+          - "OAuth2"
+        summary: "授权请求 / Authorization Request"
+        description: "用户同意授权后调用，生成授权码"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  client_id: 
+                    type: "string"
+                  redirect_uri: 
+                    type: "string"
+                    format: "uri"
+                  response_type: 
+                    type: "string"
+                    enum: 
+                      - "code"
+                  scope: 
+                    type: "string"
+                  state: 
+                    type: "string"
+                  code_challenge: 
+                    type: "string"
+                  code_challenge_method: 
+                    type: "string"
+                    enum: 
+                      - "S256"
+                      - "plain"
+                required: 
+                  - "client_id"
+                  - "redirect_uri"
+                  - "response_type"
+        responses: 
+          200: 
+            description: "授权成功，返回重定向 URL"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        redirect_url: 
+                          type: "string"
+                          format: "uri"
+    /api/v1/oauth2/token: 
+      post: 
+        tags: 
+          - "OAuth2"
+        summary: "令牌交换 / Token Exchange"
+        description: "使用授权码换取访问令牌"
+        requestBody: 
+          required: true
+          content: 
+            application/x-www-form-urlencoded: 
+              schema: 
+                type: "object"
+                properties: 
+                  grant_type: 
+                    type: "string"
+                    enum: 
+                      - "authorization_code"
+                  client_id: 
+                    type: "string"
+                  client_secret: 
+                    type: "string"
+                  code: 
+                    type: "string"
+                  redirect_uri: 
+                    type: "string"
+                    format: "uri"
+                  code_verifier: 
+                    type: "string"
+                    description: "PKCE code verifier"
+                required: 
+                  - "grant_type"
+                  - "client_id"
+                  - "code"
+                  - "redirect_uri"
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  grant_type: 
+                    type: "string"
+                    enum: 
+                      - "authorization_code"
+                  client_id: 
+                    type: "string"
+                  client_secret: 
+                    type: "string"
+                  code: 
+                    type: "string"
+                  redirect_uri: 
+                    type: "string"
+                    format: "uri"
+                  code_verifier: 
+                    type: "string"
+                required: 
+                  - "grant_type"
+                  - "client_id"
+                  - "code"
+                  - "redirect_uri"
+        responses: 
+          200: 
+            description: "令牌交换成功"
+            content: 
+              application/json: 
+                schema: 
+                  $ref: "#/components/schemas/OAuth2TokenResponse"
+          400: 
+            description: "请求无效"
+    /api/v1/oauth2/userinfo: 
+      get: 
+        tags: 
+          - "OAuth2"
+        summary: "用户信息 / User Info"
+        description: "OIDC 兼容的用户信息端点"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          200: 
+            description: "成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    sub: 
+                      type: "string"
+                      description: "User ID"
+                    name: 
+                      type: "string"
+                    email: 
+                      type: "string"
+                    email_verified: 
+                      type: "boolean"
+                    phone_number: 
+                      type: "string"
+                    phone_number_verified: 
+                      type: "boolean"
+                    picture: 
+                      type: "string"
+                      format: "uri"
+  components: 
+    securitySchemes: 
+      bearerAuth: 
+        type: "http"
+        scheme: "bearer"
+        bearerFormat: "JWT"
+        description: "JWT Access Token"
+    schemas: 
+      LoginResponse: 
+        type: "object"
+        properties: 
+          success: 
+            type: "boolean"
+            example: true
+          data: 
+            type: "object"
+            properties: 
+              user: 
+                $ref: "#/components/schemas/User"
+              access_token: 
+                type: "string"
+              refresh_token: 
+                type: "string"
+              expires_in: 
+                type: "number"
+                example: 3600
+              is_new_user: 
+                type: "boolean"
+      UserResponse: 
+        type: "object"
+        properties: 
+          success: 
+            type: "boolean"
+          data: 
+            $ref: "#/components/schemas/User"
+      User: 
+        type: "object"
+        properties: 
+          id: 
+            type: "string"
+            format: "uuid"
+          phone: 
+            type: "string"
+            nullable: true
+          email: 
+            type: "string"
+            format: "email"
+            nullable: true
+          nickname: 
+            type: "string"
+            nullable: true
+          avatar_url: 
+            type: "string"
+            format: "uri"
+            nullable: true
+      OAuth2TokenResponse: 
+        type: "object"
+        properties: 
+          access_token: 
+            type: "string"
+          token_type: 
+            type: "string"
+            example: "Bearer"
+          expires_in: 
+            type: "number"
+            example: 3600
+          refresh_token: 
+            type: "string"
+      Error: 
+        type: "object"
+        properties: 
+          success: 
+            type: "boolean"
+            example: false
+          error: 
+            type: "object"
+            properties: 
+              code: 
+                type: "string"
+              message: 
+                type: "string"
+

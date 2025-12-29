@@ -1,17 +1,17 @@
 # UniAuth SDK User Guide / SDK 使用指南
 
-UniAuth SDK (`@uniauth/sdk`) provides a simple and type-safe way to integrate UniAuth into your Node.js applications. It supports both **Trusted Client (Embedded Login)** and standard **OAuth 2.0** flows.
+UniAuth SDK (`@55387.ai/uniauth-client`) provides a simple and type-safe way to integrate UniAuth into your Node.js applications. It supports both **Trusted Client (Embedded Login)** and standard **OAuth 2.0** flows.
 
 UniAuth SDK 为您的 Node.js 应用提供了简单且类型安全的 UniAuth 集成方式，支持**受信任客户端（嵌入式登录）**和标准 **OAuth 2.0** 流程。
 
 ## Installation / 安装
 
 ```bash
-npm install @uniauth/sdk
+npm install @55387.ai/uniauth-client
 # or
-pnpm add @uniauth/sdk
+pnpm add @55387.ai/uniauth-client
 # or
-yarn add @uniauth/sdk
+yarn add @55387.ai/uniauth-client
 ```
 
 ## Quick Start / 快速开始
@@ -21,7 +21,7 @@ Initialize the client with your credentials:
 初始化客户端：
 
 ```typescript
-import { UniAuthClient } from '@uniauth/sdk';
+import { UniAuthClient } from '@55387.ai/uniauth-client';
 
 const client = new UniAuthClient({
   clientId: 'your_client_id',

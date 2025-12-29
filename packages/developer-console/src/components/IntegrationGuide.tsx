@@ -42,12 +42,12 @@ export function IntegrationGuide({ clientId, clientSecret, appType }: Integratio
     );
 
     // SDK Installation
-    const installCode = `npm install @uniauth/sdk
+    const installCode = `npm install @55387.ai/uniauth-client
 # 或者
-pnpm add @uniauth/sdk`;
+pnpm add @55387.ai/uniauth-client`;
 
     // Frontend Quick Start
-    const frontendCode = `import { UniAuthClient } from '@uniauth/sdk';
+    const frontendCode = `import { UniAuthClient } from '@55387.ai/uniauth-client';
 
 // 初始化客户端 (前端)
 const uniauth = new UniAuthClient({
@@ -77,7 +77,7 @@ const authUrl = uniauth.getAuthorizeUrl(
 window.location.href = authUrl;`;
 
     // Backend M2M Code
-    const backendCode = `import { UniAuthClient } from '@uniauth/sdk';
+    const backendCode = `import { UniAuthClient } from '@55387.ai/uniauth-client';
 
 // 初始化客户端 (后端 M2M)
 const uniauth = new UniAuthClient({

@@ -1,17 +1,20 @@
 {
-    "name": "@uniauth/server-sdk",
+    "name": "@55387.ai/uniauth-server",
     "version": "1.0.0",
-    "description": "UniAuth Backend SDK for Node.js",
+    "description": "UniAuth Server SDK - Token verification for Node.js backends",
     "type": "module",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js",
-            "types": "./dist/index.d.ts"
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
         }
+    },
+    "publishConfig": {
+        "access": "public"
     },
     "scripts": {
         "build": "tsup src/index.ts --format cjs,esm --dts --clean",

@@ -1,13 +1,54 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { setCookie } from 'hono/cookie';
 import { authService } from '../services/auth.service.js';
+import { ssoSessionService } from '../services/sso.service.js';
 import { getClientInfo, authMiddleware } from '../middlewares/index.js';
 import { getOAuthAuthUrl, getConfiguredOAuthProviders } from '../lib/index.js';
 import { validatePasswordStrength } from '../lib/password.js';
 import type { HonoVariables, OAuthProvider } from '../types/index.js';
 import { nanoid } from 'nanoid';
+import type { Context } from 'hono';
 
 const authRouter = new Hono<{ Variables: HonoVariables }>();
+
+/**
+ * Helper function to create SSO session and set cookie on successful login
+ * 登录成功后创建 SSO 会话并设置 Cookie
+ */
+async function createSSOSession(
+    c: Context,
+    userId: string,
+    options: { rememberMe?: boolean } = {}
+): Promise<void> {
+    try {
+        const { ipAddress, userAgent } = getClientInfo(c);
+
+        // Create SSO session in database
+        const session = await ssoSessionService.createSession(
+            userId,
+            'sso-portal', // The SSO portal itself
+            {
+                rememberMe: options.rememberMe,
+                ipAddress,
+                userAgent,
+            }
+        );
+
+        // Set SSO cookie
+        const cookieOptions = ssoSessionService.getCookieOptions(options.rememberMe);
+        setCookie(c, ssoSessionService.getCookieName(), session.session_token, {
+            httpOnly: cookieOptions.httpOnly as boolean,
+            secure: cookieOptions.secure as boolean,
+            sameSite: cookieOptions.sameSite as 'Lax' | 'Strict' | 'None',
+            maxAge: cookieOptions.maxAge as number,
+            path: cookieOptions.path as string,
+        });
+    } catch (error) {
+        // Log but don't fail the login if SSO session creation fails
+        console.error('Failed to create SSO session:', error);
+    }
+}
 
 /**
  * Validate captcha token
@@ -225,6 +266,11 @@ authRouter.post('/phone/verify', async (c) => {
                 },
                 message: result.message,
             });
+        }
+
+        // Create SSO session on successful login
+        if (result.user?.id) {
+            await createSSOSession(c, result.user.id, { rememberMe: body.remember_me });
         }
 
         return c.json({
@@ -697,6 +743,11 @@ authRouter.post('/email/verify', async (c) => {
             });
         }
 
+        // Create SSO session on successful login
+        if (result.user?.id) {
+            await createSSOSession(c, result.user.id, { rememberMe: body.remember_me });
+        }
+
         return c.json({
             success: true,
             data: {
@@ -785,6 +836,11 @@ authRouter.post('/mfa/verify-login', async (c) => {
                 },
                 401
             );
+        }
+
+        // Create SSO session on successful MFA login
+        if (result.user?.id) {
+            await createSSOSession(c, result.user.id);
         }
 
         return c.json({
@@ -925,6 +981,11 @@ authRouter.post('/oauth/:provider/callback', async (c) => {
                 },
                 message: result.message,
             });
+        }
+
+        // Create SSO session on successful OAuth login
+        if (result.user?.id) {
+            await createSSOSession(c, result.user.id);
         }
 
         return c.json({

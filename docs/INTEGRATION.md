@@ -80,7 +80,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 如果您使用 Node.js 开发第三方应用，可以直接使用我们的 Server SDK：
 
 ```typescript
-import { UniAuthServer } from '@uniauth/server-sdk';
+import { UniAuthServer } from '@55387.ai/uniauth-server';
 
 const auth = new UniAuthServer({
   clientId: '...',

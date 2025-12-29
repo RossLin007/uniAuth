@@ -8,6 +8,7 @@ import CountryCodeSelector from './CountryCodeSelector';
 import OtpInput from './OtpInput';
 import MFAVerifyStep from './MFAVerifyStep';
 import { defaultCountry, type Country } from '../data/countries';
+import { useOAuthRedirect } from '../hooks/useOAuthRedirect';
 
 interface User {
     id: string;
@@ -21,6 +22,7 @@ export default function PhoneLoginForm() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { setAuth } = useAuthStore();
+    const { isOAuthFlow, getPostLoginRedirect } = useOAuthRedirect();
 
     const [selectedCountry, setSelectedCountry] = useState<Country>(defaultCountry);
     const [phoneNumber, setPhoneNumber] = useState(''); // Local phone number without country code
@@ -153,8 +155,15 @@ export default function PhoneLoginForm() {
             // Store auth data
             setAuth(data.data.user, data.data.access_token, data.data.refresh_token);
 
-            // Redirect
-            navigate('/');
+            // Redirect - check if this is an OAuth flow
+            const redirectUrl = getPostLoginRedirect();
+            if (isOAuthFlow()) {
+                // OAuth flow: redirect to authorize endpoint to complete flow
+                window.location.href = redirectUrl;
+            } else {
+                // Normal login: navigate to home
+                navigate('/');
+            }
         } catch (err) {
             console.error('Login error:', err);
             setError(t('errors.networkError'));

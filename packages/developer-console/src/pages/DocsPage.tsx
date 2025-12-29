@@ -95,7 +95,7 @@ export default function DocsPage() {
                         <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
                             <p className={`text-sm font-medium mb-2 ${textPrimary}`}>npm / pnpm</p>
                             <code className="text-sm text-blue-500 dark:text-blue-400">
-                                pnpm add @uniauth/sdk
+                                pnpm add @55387.ai/uniauth-client
                             </code>
                         </div>
                     </CardContent>
@@ -172,13 +172,13 @@ export default function DocsPage() {
                     <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
                         <p className={`text-sm font-medium mb-2 ${textPrimary}`}>npm / pnpm</p>
                         <code className="text-sm text-blue-500 dark:text-blue-400">
-                            pnpm add @uniauth/sdk
+                            pnpm add @55387.ai/uniauth-client
                         </code>
                     </div>
                     <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
                         <p className={`text-sm font-medium mb-2 ${textPrimary}`}>{t('docs.basicUsage')}</p>
                         <pre className="text-xs text-slate-600 dark:text-slate-400 overflow-x-auto">
-                            {`import { UniAuth } from '@uniauth/sdk';
+                            {`import { UniAuth } from '@55387.ai/uniauth-client';
 
 const auth = new UniAuth({
     clientId: 'your-client-id',

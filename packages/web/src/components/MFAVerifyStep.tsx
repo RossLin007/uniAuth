@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { API_BASE_URL } from '../config/api';
 import OtpInput from './OtpInput';
+import { useOAuthRedirect } from '../hooks/useOAuthRedirect';
 
 interface User {
     id: string;
@@ -23,6 +24,7 @@ export default function MFAVerifyStep({ user, mfaToken, onBack }: MFAVerifyStepP
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { setAuth } = useAuthStore();
+    const { isOAuthFlow, getPostLoginRedirect } = useOAuthRedirect();
     const [code, setCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -57,7 +59,16 @@ export default function MFAVerifyStep({ user, mfaToken, onBack }: MFAVerifyStepP
 
             // Login successful
             setAuth(data.data.user, data.data.access_token, data.data.refresh_token);
-            navigate('/');
+
+            // Redirect - check if this is an OAuth flow
+            const redirectUrl = getPostLoginRedirect();
+            if (isOAuthFlow()) {
+                // OAuth flow: redirect to authorize endpoint to complete flow
+                window.location.href = redirectUrl;
+            } else {
+                // Normal login: navigate to home
+                navigate('/');
+            }
         } catch (err) {
             setError((err as Error).message || t('errors.networkError'));
         } finally {

@@ -312,9 +312,9 @@ Content-Type: application/json
 ### 7.1 前端 SDK / Frontend SDK
 
 ```typescript
-// @uniauth/client
+// @55387.ai/uniauth-client
 
-import { UniAuthClient } from '@uniauth/client';
+import { UniAuthClient } from '@55387.ai/uniauth-client';
 
 // 初始化
 const auth = new UniAuthClient({

@@ -1,9 +1,12 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
+import { getCookie } from 'hono/cookie';
 import { oauth2Service } from '../services/oauth2.service.js';
+import { ssoSessionService } from '../services/sso.service.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 import { oauth2Logger as logger } from '../lib/logger.js';
+import { env } from '../config/index.js';
 import type { HonoVariables } from '../types/index.js';
 
 const oauth2Router = new Hono<{ Variables: HonoVariables }>();
@@ -67,6 +70,114 @@ const introspectSchema = z.object({
 // ============================================
 // Routes
 // ============================================
+
+/**
+ * GET /oauth2/authorize
+ * OAuth 2.0 Authorization Endpoint with SSO Support
+ * OAuth 2.0 授权端点，支持 SSO 静默登录
+ * 
+ * Flow:
+ * 1. Validate client and redirect_uri
+ * 2. Check for existing SSO session (via cookie)
+ * 3. If SSO session exists + trusted app → Silent auth (auto-redirect with code)
+ * 4. If SSO session exists + untrusted app → Show consent page
+ * 5. If no SSO session → Redirect to login page
+ */
+oauth2Router.get(
+    '/authorize',
+    zValidator('query', validateQuerySchema),
+    async (c) => {
+        const query = c.req.valid('query');
+
+        // 1. Validate Client
+        const app = await oauth2Service.validateClient(query.client_id, query.redirect_uri);
+        if (!app) {
+            logger.warn('Authorization failed: invalid client', { clientId: query.client_id });
+            // Return error page or redirect with error
+            const errorUrl = new URL(query.redirect_uri);
+            errorUrl.searchParams.set('error', 'invalid_client');
+            errorUrl.searchParams.set('error_description', 'Invalid client_id or redirect_uri');
+            if (query.state) errorUrl.searchParams.set('state', query.state);
+            return c.redirect(errorUrl.toString());
+        }
+
+        // 2. Check PKCE requirement for public clients
+        if (app.is_public && !query.code_challenge) {
+            const errorUrl = new URL(query.redirect_uri);
+            errorUrl.searchParams.set('error', 'invalid_request');
+            errorUrl.searchParams.set('error_description', 'Public clients must use PKCE');
+            if (query.state) errorUrl.searchParams.set('state', query.state);
+            return c.redirect(errorUrl.toString());
+        }
+
+        // 3. Check for SSO session cookie
+        const sessionToken = getCookie(c, ssoSessionService.getCookieName());
+
+        if (sessionToken) {
+            const session = await ssoSessionService.getSessionByToken(sessionToken);
+
+            if (session) {
+                logger.info('SSO session found, processing silent auth', {
+                    userId: session.user_id,
+                    clientId: query.client_id,
+                    isTrusted: app.is_trusted
+                });
+
+                // User is logged in via SSO!
+                // For trusted apps (first-party), perform silent auth
+                // For untrusted apps, we could show consent page, but for now we allow it
+                // since user explicitly clicked "login" in the client app
+
+                try {
+                    // Create authorization code
+                    const code = await oauth2Service.createAuthorizationCode(
+                        session.user_id,
+                        query.client_id,
+                        query.redirect_uri,
+                        query.scope,
+                        query.code_challenge,
+                        query.code_challenge_method,
+                        query.nonce
+                    );
+
+                    // Add this app to the SSO session
+                    await ssoSessionService.addAppToSession(session.id, app.id);
+
+                    // Redirect back to client with code
+                    const redirectUrl = new URL(query.redirect_uri);
+                    redirectUrl.searchParams.set('code', code);
+                    if (query.state) redirectUrl.searchParams.set('state', query.state);
+
+                    logger.info('Silent auth successful, redirecting with code', {
+                        clientId: query.client_id,
+                        userId: session.user_id
+                    });
+
+                    return c.redirect(redirectUrl.toString());
+                } catch (error) {
+                    logger.error('Failed to create authorization code for silent auth', { error });
+                    // Fall through to login redirect
+                }
+            }
+        }
+
+        // 4. No SSO session or session invalid → Redirect to login page
+        // Pass all OAuth params so they can be preserved through login flow
+        const loginUrl = new URL(`${env.SSO_FRONTEND_URL}/login`);
+        loginUrl.searchParams.set('client_id', query.client_id);
+        loginUrl.searchParams.set('redirect_uri', query.redirect_uri);
+        loginUrl.searchParams.set('response_type', query.response_type);
+        if (query.scope) loginUrl.searchParams.set('scope', query.scope);
+        if (query.state) loginUrl.searchParams.set('state', query.state);
+        if (query.nonce) loginUrl.searchParams.set('nonce', query.nonce);
+        if (query.code_challenge) loginUrl.searchParams.set('code_challenge', query.code_challenge);
+        if (query.code_challenge_method) loginUrl.searchParams.set('code_challenge_method', query.code_challenge_method);
+
+        logger.info('No SSO session, redirecting to login', { clientId: query.client_id });
+
+        return c.redirect(loginUrl.toString());
+    }
+);
 
 /**
  * GET /oauth2/validate

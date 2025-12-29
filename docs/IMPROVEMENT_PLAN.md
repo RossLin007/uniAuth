@@ -1191,7 +1191,7 @@ export async function fetchWithRetry(
 ```json
 // packages/client-sdk/package.json
 {
-  "name": "@uniauth/client",
+  "name": "@55387.ai/uniauth-client",
   "version": "1.0.0",
   "description": "UniAuth Frontend SDK",
   "main": "./dist/index.js",
@@ -1276,22 +1276,22 @@ export { docsRouter };
 **预计工时**: 0.5 天
 
 ```markdown
-# @uniauth/client
+# @55387.ai/uniauth-client
 
 > UniAuth Frontend SDK for browser and Node.js
 
 ## Installation
 
 ```bash
-npm install @uniauth/client
+npm install @55387.ai/uniauth-client
 # or
-pnpm add @uniauth/client
+pnpm add @55387.ai/uniauth-client
 ```
 
 ## Quick Start
 
 ```typescript
-import { UniAuthClient } from '@uniauth/client';
+import { UniAuthClient } from '@55387.ai/uniauth-client';
 
 const auth = new UniAuthClient({
   baseUrl: 'https://api.uniauth.com',

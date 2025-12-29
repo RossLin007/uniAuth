@@ -6,8 +6,10 @@ import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import AppsPage from '@/pages/AppsPage';
 import DocsPage from '@/pages/DocsPage';
+import SettingsPage from '@/pages/SettingsPage';
 import OAuthCallback from '@/pages/OAuthCallback';
 import GoogleCallback from '@/pages/GoogleCallback';
+import SSOCallback from '@/pages/SSOCallback';
 import { Layout } from '@/components/Layout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -27,6 +29,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
+      <Route path="/auth/callback" element={<SSOCallback />} />
       <Route path="/auth/callback/google" element={<GoogleCallback />} />
 
       {/* Protected routes with Layout */}
@@ -39,6 +42,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/apps" element={<AppsPage />} />
         <Route path="/docs/:section?" element={<DocsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
       {/* Catch-all route - redirect to home */}

@@ -463,8 +463,8 @@ Content-Type: application/json
 
 | 模块 | 版本 | 状态 |
 | :--- | :---: | :--- |
-| `@uniauth/sdk` | 1.0.0 | Phase 1 实现 |
-| `@uniauth/sdk` | 1.1.0 | Phase 2 增加 M2M |
+| `@55387.ai/uniauth-client` | 1.0.0 | Phase 1 实现 |
+| `@55387.ai/uniauth-client` | 1.1.0 | Phase 2 增加 M2M |
 
 **发布位置**: npm registry
 
@@ -476,7 +476,7 @@ Content-Type: application/json
 ### 5.2 SDK 使用示例
 
 ```typescript
-import { UniAuthClient } from '@uniauth/sdk';
+import { UniAuthClient } from '@55387.ai/uniauth-client';
 
 const auth = new UniAuthClient({
     baseUrl: 'https://auth.example.com',

@@ -16,7 +16,10 @@
         "error": "错误",
         "warning": "警告",
         "actions": "操作",
-        "confirmDelete": "确定要删除吗？此操作无法撤销。"
+        "confirmDelete": "确定要删除吗？此操作无法撤销。",
+        "user": "用户",
+        "noContactInfo": "未设置联系方式",
+        "comingSoon": "即将推出"
     },
     "auth": {
         "login": "登录",
@@ -41,7 +44,8 @@
     "nav": {
         "dashboard": "仪表盘",
         "apps": "应用管理",
-        "docs": "文档中心"
+        "docs": "文档中心",
+        "settings": "设置"
     },
     "dashboard": {
         "title": "开发者控制台",
@@ -241,5 +245,19 @@
         "saveError": "保存品牌设置失败",
         "resetSuccess": "品牌设置已重置",
         "resetError": "重置品牌设置失败"
+    },
+    "settings": {
+        "subtitle": "管理您的账户偏好设置",
+        "profile": "个人资料",
+        "appearance": "外观",
+        "theme": "主题",
+        "themeDesc": "选择您喜欢的配色方案",
+        "language": "语言",
+        "languageDesc": "选择您喜欢的语言",
+        "security": "安全",
+        "mfa": "双重身份验证",
+        "mfaDesc": "为您的账户添加额外的安全保护",
+        "sessions": "活动会话",
+        "sessionsDesc": "管理您的活动登录会话"
     }
 }

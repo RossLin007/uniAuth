@@ -88,7 +88,7 @@ export default function AuthenticationDoc() {
                 </h3>
                 <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
                     <pre className="text-xs text-slate-600 dark:text-slate-400">
-                        {`curl -X POST 'https://api.uniauth.com/api/v1/auth/phone/send-code' \\
+                        {`curl -X POST 'https://sso.55387.xyz/api/v1/auth/phone/send-code' \\
   -H 'Content-Type: application/json' \\
   -H 'X-Client-Id: your-client-id' \\
   -d '{

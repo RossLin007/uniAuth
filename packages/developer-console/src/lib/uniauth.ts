@@ -1,4 +1,4 @@
-import { UniAuthClient } from '@uniauth/sdk';
+import { UniAuthClient } from '@55387.ai/uniauth-client';
 import { API_BASE_URL } from '../config/api';
 
 export const uniauth = new UniAuthClient({

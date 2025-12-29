@@ -5,8 +5,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
 import { ThemeSelector } from '@/components/ThemeSelector';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { LayoutDashboard, AppWindow, BookOpen, LogOut, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { LayoutDashboard, AppWindow, BookOpen, LogOut, Menu, X, Settings, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 
 interface NavItem {
     path: string;
@@ -16,10 +16,23 @@ interface NavItem {
 
 export function Layout() {
     const { t } = useTranslation();
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
     const { resolvedTheme } = useTheme();
     const location = useLocation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement>(null);
+
+    // Close user menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+                setUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const navItems: NavItem[] = [
         { path: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
@@ -55,6 +68,37 @@ export function Layout() {
         );
     };
 
+    // User avatar component
+    const UserAvatar = ({ size = 'md' }: { size?: 'sm' | 'md' }) => {
+        const sizeClass = size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm';
+
+        if (user?.avatar_url) {
+            return (
+                <img
+                    src={user.avatar_url}
+                    alt={user.nickname || 'User'}
+                    className={`${sizeClass} rounded-full object-cover`}
+                />
+            );
+        }
+
+        // Default avatar with initials
+        const initials = user?.nickname
+            ? user.nickname.slice(0, 2).toUpperCase()
+            : user?.email?.slice(0, 2).toUpperCase()
+            || user?.phone?.slice(-2)
+            || 'U';
+
+        return (
+            <div className={`${sizeClass} rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium`}>
+                {initials}
+            </div>
+        );
+    };
+
+    // User display name
+    const userDisplayName = user?.nickname || user?.email?.split('@')[0] || user?.phone || t('common.user');
+
     return (
         <div className={`min-h-screen ${bgClass} flex`}>
             {/* Desktop Sidebar */}
@@ -71,18 +115,52 @@ export function Layout() {
                 </nav>
 
                 <div className="p-4 border-t border-slate-700 space-y-3">
-                    <div className="flex items-center gap-2">
-                        <ThemeSelector />
-                        <LanguageSwitcher />
+                    {/* User Profile Section */}
+                    <div className="relative" ref={userMenuRef}>
+                        <button
+                            onClick={() => setUserMenuOpen(!userMenuOpen)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${textSecondary} hover:bg-slate-700/50`}
+                        >
+                            <UserAvatar />
+                            <div className="flex-1 text-left overflow-hidden">
+                                <p className={`text-sm font-medium ${textPrimary} truncate`}>{userDisplayName}</p>
+                                <p className={`text-xs ${textSecondary} truncate`}>
+                                    {user?.email || user?.phone || t('common.noContactInfo')}
+                                </p>
+                            </div>
+                            <ChevronDown className={`h-4 w-4 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* User Dropdown Menu */}
+                        {userMenuOpen && (
+                            <div className={`absolute bottom-full left-0 right-0 mb-2 py-2 rounded-lg shadow-lg ${resolvedTheme === 'dark' ? 'bg-slate-700' : 'bg-white'} border ${resolvedTheme === 'dark' ? 'border-slate-600' : 'border-slate-200'}`}>
+                                {/* Theme & Language in dropdown */}
+                                <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-600/50">
+                                    <ThemeSelector />
+                                    <LanguageSwitcher />
+                                </div>
+
+                                <NavLink
+                                    to="/settings"
+                                    onClick={() => setUserMenuOpen(false)}
+                                    className={`flex items-center gap-2 px-4 py-2 text-sm ${textSecondary} hover:bg-slate-600/50`}
+                                >
+                                    <Settings className="h-4 w-4" />
+                                    {t('nav.settings')}
+                                </NavLink>
+                                <button
+                                    onClick={() => {
+                                        setUserMenuOpen(false);
+                                        logout();
+                                    }}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10"
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                    {t('common.logout')}
+                                </button>
+                            </div>
+                        )}
                     </div>
-                    <Button
-                        variant="ghost"
-                        className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                        onClick={logout}
-                    >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        {t('common.logout')}
-                    </Button>
                 </div>
             </aside>
 
@@ -109,18 +187,40 @@ export function Layout() {
 
             {/* Mobile Sidebar */}
             <aside className={`md:hidden fixed top-16 left-0 bottom-0 w-64 z-50 transform transition-transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-                } ${sidebarClass} border-r`}>
-                <nav className="p-4 space-y-2">
+                } ${sidebarClass} border-r flex flex-col`}>
+                <nav className="flex-1 p-4 space-y-2">
                     {navItems.map((item) => (
                         <NavLinkItem key={item.path} item={item} />
                     ))}
                 </nav>
 
                 <div className="p-4 border-t border-slate-700 space-y-3">
-                    <div className="flex items-center gap-2">
+                    {/* User Profile Section - Mobile */}
+                    <div className="flex items-center gap-3 px-3 py-2">
+                        <UserAvatar size="sm" />
+                        <div className="flex-1 overflow-hidden">
+                            <p className={`text-sm font-medium ${textPrimary} truncate`}>{userDisplayName}</p>
+                            <p className={`text-xs ${textSecondary} truncate`}>
+                                {user?.email || user?.phone || ''}
+                            </p>
+                        </div>
+                    </div>
+
+                    <NavLink
+                        to="/settings"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm ${textSecondary} hover:bg-slate-700/50`}
+                    >
+                        <Settings className="h-4 w-4" />
+                        {t('nav.settings')}
+                    </NavLink>
+
+                    {/* Theme & Language in mobile sidebar */}
+                    <div className="flex items-center gap-2 px-2">
                         <ThemeSelector />
                         <LanguageSwitcher />
                     </div>
+
                     <Button
                         variant="ghost"
                         className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10"

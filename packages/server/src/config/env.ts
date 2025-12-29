@@ -94,6 +94,9 @@ const envSchema = z.object({
     // Frontend URL (for redirects)
     FRONTEND_URL: z.string().default('http://localhost:5173'),
 
+    // SSO Frontend URL (for OAuth authorize redirect to login page)
+    SSO_FRONTEND_URL: z.string().default('http://localhost:5173'),
+
     // Logging
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
