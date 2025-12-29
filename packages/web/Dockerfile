@@ -14,7 +14,6 @@ COPY packages/server/package.json ./packages/server/
 COPY packages/web/package.json ./packages/web/
 # Copy other packages just in case of dependencies (exclude if strictly not needed but good for monorepo safety)
 COPY packages/developer-console/package.json ./packages/developer-console/
-COPY packages/sdk/package.json ./packages/sdk/
 COPY packages/client-sdk/package.json ./packages/client-sdk/
 COPY packages/server-sdk/package.json ./packages/server-sdk/
 

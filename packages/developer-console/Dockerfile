@@ -13,7 +13,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/server/package.json ./packages/server/
 COPY packages/web/package.json ./packages/web/
 COPY packages/developer-console/package.json ./packages/developer-console/
-COPY packages/sdk/package.json ./packages/sdk/
 COPY packages/client-sdk/package.json ./packages/client-sdk/
 COPY packages/server-sdk/package.json ./packages/server-sdk/
 
@@ -22,12 +21,12 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source code and config
 COPY packages/developer-console ./packages/developer-console
-COPY packages/sdk ./packages/sdk
+COPY packages/client-sdk ./packages/client-sdk
 # Copy shared configs if needed
 COPY tsconfig.json ./
 
-# Build SDK first (required by developer-console)
-WORKDIR /app/packages/sdk
+# Build client-sdk first (required by developer-console)
+WORKDIR /app/packages/client-sdk
 RUN pnpm build
 
 # Build developer-console
