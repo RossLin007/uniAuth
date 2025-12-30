@@ -9,6 +9,8 @@ export const VERIFICATION_CODE = {
     EXPIRES_IN_SECONDS: 300, // 5 minutes
     RETRY_AFTER_SECONDS: 60, // 1 minute between sends
     MAX_ATTEMPTS: 5, // Max verification attempts
+    DAILY_LIMIT_PER_PHONE: 5, // Max SMS per phone per day
+    DAILY_LIMIT_PER_IP: 20, // Max SMS per IP per day
 } as const;
 
 // Rate limiting settings
@@ -64,5 +66,6 @@ export const MESSAGES = {
         UNAUTHORIZED: '未授权访问 / Unauthorized',
         INTERNAL_ERROR: '服务器内部错误 / Internal server error',
         SMS_SEND_FAILED: '短信发送失败 / Failed to send SMS',
+        DAILY_LIMIT_EXCEEDED: '今日发送次数已达上限 / Daily send limit exceeded',
     },
 } as const;

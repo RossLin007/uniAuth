@@ -24,10 +24,10 @@ interface AuthContextType {
     loading: boolean;
     // Phone auth
     loginWithPhone: (phone: string, code: string) => Promise<AuthResult>;
-    sendPhoneCode: (phone: string, captchaToken: string) => Promise<AuthResult>;
+    sendPhoneCode: (phone: string) => Promise<AuthResult>;
     // Email auth
     loginWithEmail: (email: string, code: string) => Promise<AuthResult>;
-    sendEmailCode: (email: string, captchaToken: string) => Promise<AuthResult>;
+    sendEmailCode: (email: string) => Promise<AuthResult>;
     // SSO Login
     loginWithSSO: () => void;
     // Google OAuth (legacy)
@@ -94,9 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const sendPhoneCode = useCallback(async (phone: string, captchaToken: string): Promise<AuthResult> => {
+    const sendPhoneCode = useCallback(async (phone: string): Promise<AuthResult> => {
         try {
-            await uniauth.sendCode(phone, 'login', captchaToken);
+            await uniauth.sendCode(phone, 'login');
             return { success: true };
         } catch (err: unknown) {
             return { success: false, error: getErrorMessage(err) };
@@ -119,9 +119,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const sendEmailCode = useCallback(async (email: string, captchaToken: string): Promise<AuthResult> => {
+    const sendEmailCode = useCallback(async (email: string): Promise<AuthResult> => {
         try {
-            await uniauth.sendEmailCode(email, 'login', captchaToken);
+            await uniauth.sendEmailCode(email, 'login');
             return { success: true };
         } catch (err: unknown) {
             return { success: false, error: getErrorMessage(err) };

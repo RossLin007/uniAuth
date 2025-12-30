@@ -4,11 +4,34 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="description" content="UniAuth - Unified Authentication Platform / 统一身份认证平台" />
+  <!-- PWA meta tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>UniAuth - Login</title>
-  <!-- Use system fonts as fallback to avoid network issues -->
   <style>
+    /* Disable pull-to-refresh on mobile / PWA */
+    html, body {
+      overscroll-behavior: none;
+      overscroll-behavior-y: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    body {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      touch-action: pan-x pan-y;
+    }
+    
+    #root {
+      height: 100%;
+      overflow-y: auto;
+    }
+    
     @font-face {
       font-family: 'Inter';
       font-style: normal;

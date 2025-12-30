@@ -51,47 +51,6 @@ async function createSSOSession(
 }
 
 /**
- * Validate captcha token
- * 验证人机验证令牌
- * 
- * This is a simple implementation that validates the token format and age.
- * For production, consider integrating with external services like:
- * - Tencent Captcha (腾讯验证码)
- * - Alibaba CAPTCHA (阿里验证码)
- * - reCAPTCHA / hCaptcha
- */
-function validateCaptchaToken(token: string): boolean {
-    // Token format: captcha_{timestamp}_{random}
-    if (!token || typeof token !== 'string') {
-        return false;
-    }
-
-    const parts = token.split('_');
-    if (parts.length !== 3 || parts[0] !== 'captcha') {
-        return false;
-    }
-
-    const timestamp = parseInt(parts[1], 10);
-    if (isNaN(timestamp)) {
-        return false;
-    }
-
-    // Token must be generated within the last 5 minutes
-    const now = Date.now();
-    const maxAge = 5 * 60 * 1000; // 5 minutes
-    if (now - timestamp > maxAge) {
-        return false;
-    }
-
-    // Token must not be from the future (with 10 second tolerance)
-    if (timestamp > now + 10000) {
-        return false;
-    }
-
-    return true;
-}
-
-/**
  * Phone number validation schema
  * 手机号验证模式
  */
@@ -130,21 +89,6 @@ authRouter.post('/phone/send-code', async (c) => {
                     error: {
                         code: 'INVALID_PHONE',
                         message: phoneResult.error.errors[0].message,
-                    },
-                },
-                400
-            );
-        }
-
-        // Validate captcha token (anti-bot protection)
-        const captchaToken = body.captcha_token;
-        if (!captchaToken || !validateCaptchaToken(captchaToken)) {
-            return c.json(
-                {
-                    success: false,
-                    error: {
-                        code: 'CAPTCHA_REQUIRED',
-                        message: 'Please complete the captcha verification / 请完成人机验证',
                     },
                 },
                 400
@@ -538,8 +482,9 @@ authRouter.post('/email/send-code', async (c) => {
         }
 
         const type = body.type || 'email_verify';
+        const ipAddress = c.req.header('x-forwarded-for')?.split(',')[0] || c.req.header('x-real-ip') || 'unknown';
 
-        const result = await authService.sendEmailCode(emailResult.data, type);
+        const result = await authService.sendEmailCode(emailResult.data, type, ipAddress);
 
         if (!result.success) {
             return c.json(

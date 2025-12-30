@@ -347,7 +347,7 @@ export class UniAuthClient {
      * Send verification code to phone number
      * 发送验证码到手机号
      * 
-     * @param phone - Phone number
+     * @param phone - Phone number in E.164 format (e.g., +8613800138000)
      * @param type - Purpose of the verification code
      * @param captchaToken - Captcha verification token from slider captcha
      */
@@ -356,6 +356,76 @@ export class UniAuthClient {
         type: 'login' | 'register' | 'reset' = 'login',
         captchaToken?: string
     ): Promise<SendCodeResult> {
+        // Validate phone number format (E.164: +countrycode + number)
+        if (!phone || typeof phone !== 'string') {
+            throw this.createError('INVALID_PHONE', 'Phone number is required / 请输入手机号');
+        }
+
+        // Country-specific validation rules
+        const countryValidation: Record<string, { regex: RegExp; example: string; name: string }> = {
+            // China: +86 followed by 11 digits starting with 1
+            '+86': {
+                regex: /^\+861[3-9]\d{9}$/,
+                example: '+8613800138000',
+                name: '中国'
+            },
+            // USA/Canada: +1 followed by 10 digits (NPA-NXX-XXXX)
+            '+1': {
+                regex: /^\+1[2-9]\d{2}[2-9]\d{6}$/,
+                example: '+14155552671',
+                name: 'USA/Canada'
+            },
+            // Australia: +61 followed by 9 digits starting with 4 (mobile)
+            '+61': {
+                regex: /^\+614\d{8}$/,
+                example: '+61412345678',
+                name: 'Australia'
+            },
+            // UK: +44 followed by 10 digits starting with 7 (mobile)
+            '+44': {
+                regex: /^\+447\d{9}$/,
+                example: '+447911123456',
+                name: 'UK'
+            },
+            // Japan: +81 followed by 10-11 digits
+            '+81': {
+                regex: /^\+81[789]0\d{8}$/,
+                example: '+818012345678',
+                name: 'Japan'
+            },
+        };
+
+        // Extract country code (try +1, +86, +61, etc.)
+        let countryCode = '';
+        let validation = null;
+
+        for (const code of Object.keys(countryValidation).sort((a, b) => b.length - a.length)) {
+            if (phone.startsWith(code)) {
+                countryCode = code;
+                validation = countryValidation[code];
+                break;
+            }
+        }
+
+        if (validation) {
+            // Country-specific validation
+            if (!validation.regex.test(phone)) {
+                throw this.createError(
+                    'INVALID_PHONE_FORMAT',
+                    `Invalid ${validation.name} phone number format. Example: ${validation.example} / ${validation.name}手机号格式错误，示例：${validation.example}`
+                );
+            }
+        } else {
+            // Fallback: Generic E.164 validation for other countries
+            const e164Regex = /^\+[1-9]\d{6,14}$/;
+            if (!e164Regex.test(phone)) {
+                throw this.createError(
+                    'INVALID_PHONE_FORMAT',
+                    'Phone number must be in E.164 format (e.g., +8613800138000) / 手机号格式错误，请使用国际格式（如 +8613800138000）'
+                );
+            }
+        }
+
         const response = await this.request<SendCodeResult>('/api/v1/auth/phone/send-code', {
             method: 'POST',
             body: JSON.stringify({

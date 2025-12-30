@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { API_BASE_URL } from '../config/api';
-import SliderCaptcha from './SliderCaptcha';
 import OtpInput from './OtpInput';
 import MFAVerifyStep from './MFAVerifyStep';
 import { useOAuthRedirect } from '../hooks/useOAuthRedirect';
+import { useToast } from '../context/ToastContext';
 
 interface User {
     id: string;
@@ -68,20 +68,30 @@ export default function EmailLoginForm() {
     const navigate = useNavigate();
     const { setAuth } = useAuthStore();
     const { isOAuthFlow, getPostLoginRedirect } = useOAuthRedirect();
+    const { success: toastSuccess } = useToast();
 
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(() => {
+        // Load saved email from localStorage
+        return localStorage.getItem('uniauth_last_email') || '';
+    });
     const [code, setCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [sendingCode, setSendingCode] = useState(false);
     const [countdown, setCountdown] = useState(0);
     const [error, setError] = useState<string | null>(null);
-    const [showCaptcha, setShowCaptcha] = useState(false);
     const [codeSent, setCodeSent] = useState(false);
 
     // MFA state
     const [mfaRequired, setMfaRequired] = useState(false);
     const [mfaToken, setMfaToken] = useState('');
     const [mfaUser, setMfaUser] = useState<User | null>(null);
+
+    // Save email to localStorage when it changes
+    useEffect(() => {
+        if (email) {
+            localStorage.setItem('uniauth_last_email', email);
+        }
+    }, [email]);
 
     // Countdown timer
     useEffect(() => {
@@ -96,27 +106,17 @@ export default function EmailLoginForm() {
         return email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     };
 
-    const handleSendCodeClick = () => {
+    const handleSendCodeClick = async () => {
         if (!isValidEmail(email)) {
             setError(t('errors.invalidEmail'));
             return;
         }
 
         setError(null);
-        // Show captcha before sending code
-        setShowCaptcha(true);
+        await sendCode();
     };
 
-    const handleCaptchaVerify = async (captchaToken: string) => {
-        setShowCaptcha(false);
-        await sendCode(captchaToken);
-    };
-
-    const handleCaptchaClose = () => {
-        setShowCaptcha(false);
-    };
-
-    const sendCode = async (captchaToken: string) => {
+    const sendCode = async () => {
         setSendingCode(true);
 
         try {
@@ -126,7 +126,6 @@ export default function EmailLoginForm() {
                 body: JSON.stringify({
                     email,
                     type: 'login',
-                    captcha_token: captchaToken,
                 }),
             });
 
@@ -142,6 +141,7 @@ export default function EmailLoginForm() {
 
             setCountdown(data.data?.retry_after || 60);
             setCodeSent(true);
+            toastSuccess(t('common.codeSent', 'Verification code sent!'));
         } catch (err) {
             console.error('Send code error:', err);
             setError(t('errors.networkError'));
@@ -310,14 +310,6 @@ export default function EmailLoginForm() {
                     {t('login.signIn')}
                 </button>
             </form>
-
-            {/* Captcha Modal */}
-            {showCaptcha && (
-                <SliderCaptcha
-                    onVerify={handleCaptchaVerify}
-                    onClose={handleCaptchaClose}
-                />
-            )}
         </>
     );
 }

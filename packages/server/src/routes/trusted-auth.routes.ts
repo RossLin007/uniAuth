@@ -273,9 +273,10 @@ trustedAuthRouter.post('/email/send-code', async (c) => {
 
         const email = emailResult.data;
         const type = body.type || 'email_verify';
+        const ipAddress = c.req.header('x-forwarded-for')?.split(',')[0] || c.req.header('x-real-ip') || 'unknown';
 
         // Send verification code
-        const result = await authService.sendEmailCode(email, type);
+        const result = await authService.sendEmailCode(email, type, ipAddress);
 
         if (!result.success) {
             return c.json(

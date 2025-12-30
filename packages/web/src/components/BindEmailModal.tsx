@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
 import OtpInput from './OtpInput';
-import SliderCaptcha from './SliderCaptcha';
 import Modal from './ui/Modal';
 import { useToast } from '../context/ToastContext';
 
@@ -18,7 +17,7 @@ export default function BindEmailModal({ isOpen, onClose, onSuccess }: BindEmail
 
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
-    const [step, setStep] = useState<'email' | 'captcha' | 'code'>('email');
+    const [step, setStep] = useState<'email' | 'code'>('email');
     const [sending, setSending] = useState(false);
     const [binding, setBinding] = useState(false);
     const [countdown, setCountdown] = useState(0);
@@ -27,25 +26,19 @@ export default function BindEmailModal({ isOpen, onClose, onSuccess }: BindEmail
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     };
 
-    const handleSendCodeClick = () => {
+    const handleSendCodeClick = async () => {
         if (!validateEmail(email)) {
             toastError(t('errors.invalidEmail'));
             return;
         }
-        setStep('captcha');
+        await sendCode();
     };
 
-    const handleCaptchaVerify = async (captchaToken: string) => {
-        setStep('email');
-        await sendCode(captchaToken);
-    };
-
-    const sendCode = async (captchaToken: string) => {
+    const sendCode = async () => {
         setSending(true);
         try {
             await api.post('/auth/email/send-code', {
                 email,
-                captcha_token: captchaToken,
             });
             setStep('code');
             setCountdown(60);
@@ -91,15 +84,6 @@ export default function BindEmailModal({ isOpen, onClose, onSuccess }: BindEmail
         setStep('email');
         onClose();
     };
-
-    if (step === 'captcha') {
-        return (
-            <SliderCaptcha
-                onVerify={handleCaptchaVerify}
-                onClose={() => setStep('email')}
-            />
-        );
-    }
 
     return (
         <Modal

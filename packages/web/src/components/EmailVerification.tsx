@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import { API_BASE_URL } from '../config/api';
-import SliderCaptcha from './SliderCaptcha';
 
 interface Props {
     email: string;
@@ -27,7 +26,6 @@ export default function EmailVerification({ email, onVerified, onClose }: Props)
     const [countdown, setCountdown] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [showCaptcha, setShowCaptcha] = useState(false);
 
     // Prevent double sending in React 18 StrictMode
     const hasSentCode = useRef(false);
@@ -40,31 +38,21 @@ export default function EmailVerification({ email, onVerified, onClose }: Props)
         }
     }, [countdown]);
 
-    // Auto-show captcha on mount (only once)
+    // Auto-send code on mount (only once)
     useEffect(() => {
         if (!hasSentCode.current) {
             hasSentCode.current = true;
-            // Show captcha before first send
-            setShowCaptcha(true);
+            sendCode();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleResendClick = () => {
+    const handleResendClick = async () => {
         if (countdown > 0 || sendingCode) return;
-        setShowCaptcha(true);
+        await sendCode();
     };
 
-    const handleCaptchaVerify = async (captchaToken: string) => {
-        setShowCaptcha(false);
-        await sendCode(captchaToken);
-    };
-
-    const handleCaptchaClose = () => {
-        setShowCaptcha(false);
-    };
-
-    const sendCode = async (captchaToken: string) => {
+    const sendCode = async () => {
         setSendingCode(true);
         setError(null);
 
@@ -78,7 +66,6 @@ export default function EmailVerification({ email, onVerified, onClose }: Props)
                 body: JSON.stringify({
                     email,
                     type: 'email_verify',
-                    captcha_token: captchaToken,
                 }),
             });
 
@@ -261,14 +248,6 @@ export default function EmailVerification({ email, onVerified, onClose }: Props)
             <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-4">
                 {t('emailVerify.info')}
             </p>
-
-            {/* Captcha Modal */}
-            {showCaptcha && (
-                <SliderCaptcha
-                    onVerify={handleCaptchaVerify}
-                    onClose={handleCaptchaClose}
-                />
-            )}
         </div>
     );
 }

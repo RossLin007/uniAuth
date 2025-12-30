@@ -241,39 +241,47 @@ export default function CountryCodeSelector({ selectedCountry, onSelect }: Count
                     font-size: 14px;
                 }
                 
-                /* Dark mode */
+                /* Dark mode - keep light background since login card is white */
                 @media (prefers-color-scheme: dark) {
                     .country-selector-trigger {
-                        background: #1e293b;
-                        border-color: #334155;
-                        color: #e2e8f0;
+                        background: #f8fafc;
+                        border-color: #e2e8f0;
+                        color: #1e293b;
                     }
                     
                     .country-selector-trigger:hover {
-                        background: #334155;
+                        background: #f1f5f9;
+                    }
+                    
+                    .country-dial-code {
+                        color: #64748b;
                     }
                     
                     .country-dropdown {
-                        background: #1e293b;
-                        border-color: #334155;
+                        background: white;
+                        border-color: #e2e8f0;
                     }
                     
                     .country-search-wrapper {
-                        border-color: #334155;
+                        border-color: #e2e8f0;
                     }
                     
                     .country-search {
-                        background: #0f172a;
-                        border-color: #334155;
-                        color: #e2e8f0;
+                        background: white;
+                        border-color: #e2e8f0;
+                        color: #1e293b;
                     }
                     
                     .country-item:hover {
-                        background: #334155;
+                        background: #f8fafc;
                     }
                     
                     .country-item.selected {
-                        background: #0c4a6e;
+                        background: #e0f2fe;
+                    }
+                    
+                    .country-item .country-name {
+                        color: #1e293b;
                     }
                 }
             `}</style>

@@ -102,7 +102,7 @@ export default function LoginPage() {
                             onClick={() => setActiveTab('phone')}
                             className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'phone'
                                 ? 'bg-white dark:bg-slate-700 shadow-soft'
-                                : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                                 }`}
                             style={activeTab === 'phone' ? { color: branding.primary_color } : undefined}
                         >
@@ -112,7 +112,7 @@ export default function LoginPage() {
                             onClick={() => setActiveTab('email')}
                             className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'email'
                                 ? 'bg-white dark:bg-slate-700 shadow-soft'
-                                : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                                 }`}
                             style={activeTab === 'email' ? { color: branding.primary_color } : undefined}
                         >

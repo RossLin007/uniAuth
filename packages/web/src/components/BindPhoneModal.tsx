@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../utils/api';
 import OtpInput from './OtpInput';
 import CountryCodeSelector, { defaultCountry } from './CountryCodeSelector';
-import SliderCaptcha from './SliderCaptcha';
 import type { Country } from '../data/countries';
 import Modal from './ui/Modal';
 import { useToast } from '../context/ToastContext';
@@ -21,32 +20,26 @@ export default function BindPhoneModal({ isOpen, onClose, onSuccess }: BindPhone
     const [selectedCountry, setSelectedCountry] = useState<Country>(defaultCountry);
     const [phone, setPhone] = useState('');
     const [code, setCode] = useState('');
-    const [step, setStep] = useState<'phone' | 'captcha' | 'code'>('phone');
+    const [step, setStep] = useState<'phone' | 'code'>('phone');
     const [sending, setSending] = useState(false);
     const [binding, setBinding] = useState(false);
     const [countdown, setCountdown] = useState(0);
 
     const fullPhone = `${selectedCountry.dialCode}${phone}`;
 
-    const handleSendCodeClick = () => {
+    const handleSendCodeClick = async () => {
         if (!phone || phone.length < 5) {
             toastError(t('errors.invalidPhone'));
             return;
         }
-        setStep('captcha');
+        await sendCode();
     };
 
-    const handleCaptchaVerify = async (captchaToken: string) => {
-        setStep('phone');
-        await sendCode(captchaToken);
-    };
-
-    const sendCode = async (captchaToken: string) => {
+    const sendCode = async () => {
         setSending(true);
         try {
             await api.post('/auth/phone/send-code', {
                 phone: fullPhone,
-                captcha_token: captchaToken,
             });
             setStep('code');
             setCountdown(60);
@@ -92,17 +85,6 @@ export default function BindPhoneModal({ isOpen, onClose, onSuccess }: BindPhone
         setStep('phone');
         onClose();
     };
-
-    // Show captcha (Modal handles its own overlay, so we might need to handle this carefully. 
-    // SliderCaptcha usually has its own modal. Let's keep it separate or integrate it.)
-    if (step === 'captcha') {
-        return (
-            <SliderCaptcha
-                onVerify={handleCaptchaVerify}
-                onClose={() => setStep('phone')}
-            />
-        );
-    }
 
     return (
         <Modal

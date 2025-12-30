@@ -129,7 +129,7 @@ export default function OtpInput({
     };
 
     return (
-        <div className={`flex gap-1.5 sm:gap-2 ${className}`} role="group" aria-label="验证码输入">
+        <div className={`flex gap-1.5 ${className}`} role="group" aria-label="验证码输入">
             {digits.map((digit, index) => (
                 <input
                     key={index}
@@ -148,14 +148,16 @@ export default function OtpInput({
                     placeholder={focusedIndex === index ? '' : placeholder}
                     aria-label={`第 ${index + 1} 位验证码`}
                     className={`
-                        w-9 h-10 sm:w-10 sm:h-11 text-center text-base sm:text-lg font-semibold rounded-lg
-                        border transition-all duration-200
+                        w-8 h-10 text-center text-base font-bold rounded-lg
+                        border transition-all duration-150
                         ${focusedIndex === index
-                            ? 'border-sky-500 ring-2 ring-sky-500/20 bg-canvas dark:bg-slate-800'
-                            : 'border-slate-200 dark:border-slate-700 bg-mist dark:bg-slate-800/50'
+                            ? 'border-sky-500 ring-2 ring-sky-500/20 bg-white dark:bg-slate-800'
+                            : digit
+                                ? 'border-sky-400 bg-sky-50/50 dark:bg-sky-900/20 dark:border-sky-500'
+                                : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800'
                         }
-                        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-                        text-ink dark:text-moonlight placeholder:text-slate-300 dark:placeholder:text-slate-600
+                        ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-sky-300'}
+                        text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-500
                         focus:outline-none
                     `}
                 />

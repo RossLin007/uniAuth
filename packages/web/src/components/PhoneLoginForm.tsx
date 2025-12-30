@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { API_BASE_URL } from '../config/api';
-import SliderCaptcha from './SliderCaptcha';
 import CountryCodeSelector from './CountryCodeSelector';
 import OtpInput from './OtpInput';
 import MFAVerifyStep from './MFAVerifyStep';
 import { defaultCountry, type Country } from '../data/countries';
 import { useOAuthRedirect } from '../hooks/useOAuthRedirect';
+import { useToast } from '../context/ToastContext';
 
 interface User {
     id: string;
@@ -23,15 +23,27 @@ export default function PhoneLoginForm() {
     const navigate = useNavigate();
     const { setAuth } = useAuthStore();
     const { isOAuthFlow, getPostLoginRedirect } = useOAuthRedirect();
+    const { success: toastSuccess } = useToast();
 
-    const [selectedCountry, setSelectedCountry] = useState<Country>(defaultCountry);
-    const [phoneNumber, setPhoneNumber] = useState(''); // Local phone number without country code
+    const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
+        // Load saved country from localStorage
+        const saved = localStorage.getItem('uniauth_last_country');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch { /* ignore */ }
+        }
+        return defaultCountry;
+    });
+    const [phoneNumber, setPhoneNumber] = useState(() => {
+        // Load saved phone from localStorage
+        return localStorage.getItem('uniauth_last_phone') || '';
+    });
     const [code, setCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [sendingCode, setSendingCode] = useState(false);
     const [countdown, setCountdown] = useState(0);
     const [error, setError] = useState<string | null>(null);
-    const [showCaptcha, setShowCaptcha] = useState(false);
 
     // MFA state
     const [mfaRequired, setMfaRequired] = useState(false);
@@ -40,6 +52,14 @@ export default function PhoneLoginForm() {
 
     // Full phone number with country code
     const fullPhone = phoneNumber ? `${selectedCountry.dialCode}${phoneNumber.replace(/^0+/, '')}` : '';
+
+    // Save phone and country to localStorage when they change
+    useEffect(() => {
+        if (phoneNumber) {
+            localStorage.setItem('uniauth_last_phone', phoneNumber);
+        }
+        localStorage.setItem('uniauth_last_country', JSON.stringify(selectedCountry));
+    }, [phoneNumber, selectedCountry]);
 
     // Countdown timer
     useEffect(() => {
@@ -55,7 +75,7 @@ export default function PhoneLoginForm() {
         setPhoneNumber(value);
     };
 
-    const handleSendCodeClick = () => {
+    const handleSendCodeClick = async () => {
         // Validate phone number (at least 6 digits)
         if (!phoneNumber || phoneNumber.length < 6) {
             setError(t('errors.invalidPhone'));
@@ -69,20 +89,10 @@ export default function PhoneLoginForm() {
         }
 
         setError(null);
-        // Show captcha before sending code
-        setShowCaptcha(true);
+        await sendCode();
     };
 
-    const handleCaptchaVerify = async (captchaToken: string) => {
-        setShowCaptcha(false);
-        await sendCode(captchaToken);
-    };
-
-    const handleCaptchaClose = () => {
-        setShowCaptcha(false);
-    };
-
-    const sendCode = async (captchaToken: string) => {
+    const sendCode = async () => {
         setSendingCode(true);
 
         try {
@@ -91,7 +101,6 @@ export default function PhoneLoginForm() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     phone: fullPhone,
-                    captcha_token: captchaToken,
                 }),
             });
 
@@ -106,6 +115,7 @@ export default function PhoneLoginForm() {
             }
 
             setCountdown(data.data.retry_after || 60);
+            toastSuccess(t('common.codeSent', 'Verification code sent!'));
         } catch (err) {
             console.error('Send code error:', err);
             setError(t('errors.networkError'));
@@ -208,18 +218,20 @@ export default function PhoneLoginForm() {
                     />
                 </div>
 
-                {/* Code Input */}
-                <div className="flex justify-between items-center">
-                    <OtpInput
-                        value={code}
-                        onChange={setCode}
-                        disabled={loading}
-                    />
+                {/* OTP Input with Send Code Button */}
+                <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                        <OtpInput
+                            value={code}
+                            onChange={setCode}
+                            disabled={loading}
+                        />
+                    </div>
                     <button
                         type="button"
                         onClick={handleSendCodeClick}
-                        disabled={sendingCode || countdown > 0}
-                        className="ml-2 px-3 py-2 h-12 text-sm rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed hover:bg-sky-100 dark:hover:bg-sky-900/30 transition-colors"
+                        disabled={sendingCode || countdown > 0 || !phoneNumber}
+                        className="shrink-0 px-3 py-2.5 h-11 text-sm rounded-lg bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed hover:bg-sky-100 dark:hover:bg-sky-900/50 border border-sky-200 dark:border-sky-700 transition-all"
                     >
                         {sendingCode ? (
                             <span className="inline-block w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></span>
@@ -250,14 +262,6 @@ export default function PhoneLoginForm() {
                     {t('login.signIn')}
                 </button>
             </form>
-
-            {/* Captcha Modal */}
-            {showCaptcha && (
-                <SliderCaptcha
-                    onVerify={handleCaptchaVerify}
-                    onClose={handleCaptchaClose}
-                />
-            )}
         </>
     );
 }

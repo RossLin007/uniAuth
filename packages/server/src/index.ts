@@ -78,7 +78,7 @@ app.use(
     cors({
         origin: env.CORS_ORIGINS.split(',').map((o) => o.trim()),
         allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'Authorization', 'X-Client-Id', 'X-Client-Secret', 'X-UniAuth-Event', 'X-UniAuth-Delivery', 'X-UniAuth-Signature'],
+        allowHeaders: ['Content-Type', 'Authorization', 'X-App-Key', 'X-Client-Id', 'X-Client-Secret', 'X-UniAuth-Event', 'X-UniAuth-Delivery', 'X-UniAuth-Signature'],
         exposeHeaders: ['Content-Length', 'X-Request-Id', 'X-RateLimit-Limit', 'X-RateLimit-Remaining', 'Retry-After'],
         credentials: true,
         maxAge: 86400,

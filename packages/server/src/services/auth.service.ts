@@ -42,6 +42,24 @@ export class AuthService {
         phone: string,
         type: 'login' | 'register' | 'reset' = 'login'
     ): Promise<{ success: boolean; message: string; expiresIn?: number; retryAfter?: number }> {
+        // Get start of today (UTC)
+        const todayStart = new Date();
+        todayStart.setUTCHours(0, 0, 0, 0);
+
+        // Check daily quota for this phone number
+        const { count: dailyCount } = await this.supabase
+            .from(TABLES.VERIFICATION_CODES)
+            .select('id', { count: 'exact', head: true })
+            .eq('phone', phone)
+            .gte('created_at', todayStart.toISOString());
+
+        if (dailyCount && dailyCount >= VERIFICATION_CODE.DAILY_LIMIT_PER_PHONE) {
+            return {
+                success: false,
+                message: MESSAGES.ERROR.DAILY_LIMIT_EXCEEDED,
+            };
+        }
+
         // Check if there's a recent code (rate limiting)
         const { data: recentCode } = await this.supabase
             .from(TABLES.VERIFICATION_CODES)
@@ -316,10 +334,45 @@ export class AuthService {
      */
     async sendEmailCode(
         email: string,
-        type: 'login' | 'register' | 'reset' | 'email_verify' = 'email_verify'
+        type: 'login' | 'register' | 'reset' | 'email_verify' = 'email_verify',
+        ipAddress?: string
     ): Promise<{ success: boolean; message: string; expiresIn?: number; retryAfter?: number }> {
         // Import email service dynamically to avoid circular dependencies
         const { sendVerificationEmail } = await import('../lib/email.js');
+
+        // Get start of today (UTC)
+        const todayStart = new Date();
+        todayStart.setUTCHours(0, 0, 0, 0);
+
+        // Check daily quota for this email
+        const { count: dailyCount } = await this.supabase
+            .from(TABLES.VERIFICATION_CODES)
+            .select('id', { count: 'exact', head: true })
+            .eq('email', email)
+            .gte('created_at', todayStart.toISOString());
+
+        if (dailyCount && dailyCount >= VERIFICATION_CODE.DAILY_LIMIT_PER_PHONE) {
+            return {
+                success: false,
+                message: MESSAGES.ERROR.DAILY_LIMIT_EXCEEDED,
+            };
+        }
+
+        // Check daily quota for this IP address
+        if (ipAddress) {
+            const { count: ipDailyCount } = await this.supabase
+                .from(TABLES.VERIFICATION_CODES)
+                .select('id', { count: 'exact', head: true })
+                .eq('ip_address', ipAddress)
+                .gte('created_at', todayStart.toISOString());
+
+            if (ipDailyCount && ipDailyCount >= VERIFICATION_CODE.DAILY_LIMIT_PER_IP) {
+                return {
+                    success: false,
+                    message: MESSAGES.ERROR.DAILY_LIMIT_EXCEEDED,
+                };
+            }
+        }
 
         // Check if there's a recent code (rate limiting)
         const { data: recentCode } = await this.supabase
