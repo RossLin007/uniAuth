@@ -15,8 +15,10 @@ import { Layout } from '@/components/Layout';
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, user, loading } = useAuth();
 
-  // Show loading while validating token
-  if (loading) {
+  // Show loading while:
+  // 1. Initial auth state is being determined (loading=true)
+  // 2. Token exists but user hasn't been fetched yet (means we're still validating)
+  if (loading || (token && !user)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-slate-400">Loading...</div>
@@ -24,9 +26,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Only allow access if both token exists AND user is loaded (validation passed)
-  // This prevents showing protected pages with an expired token
-  return (token && user) ? <>{children}</> : <Navigate to="/login" />;
+  // Only redirect to login if there's no token (user explicitly logged out or never logged in)
+  // If token exists but user is null at this point, it means validation failed and token was cleared
+  return token ? <>{children}</> : <Navigate to="/login" />;
 }
 
 function AppRoutes() {

@@ -6,6 +6,10 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { API_BASE_URL } from '@/config/api';
 
+// SDK uses these keys for token storage
+const UNIAUTH_ACCESS_TOKEN_KEY = 'uniauth_access_token';
+const UNIAUTH_REFRESH_TOKEN_KEY = 'uniauth_refresh_token';
+
 // This page handles the OAuth callback from Google social login
 export default function GoogleCallback() {
     const [searchParams] = useSearchParams();
@@ -21,14 +25,24 @@ export default function GoogleCallback() {
     const [mfaLoading, setMfaLoading] = useState(false);
 
     useEffect(() => {
-        // If we already have MFA token stored, skip code exchange
+        const code = searchParams.get('code');
+
+        // If we have stored MFA token but no OAuth code, this means user
+        // navigated directly to this page without going through OAuth flow.
+        // Clear the stale token and redirect to login.
+        if (storedMfaToken && !code) {
+            sessionStorage.removeItem('mfa_token');
+            window.location.href = '/login';
+            return;
+        }
+
+        // If we already have MFA token stored (and have valid OAuth context), skip code exchange
         if (storedMfaToken) {
             setStatus('MFA verification required');
             return;
         }
 
         const exchangeCode = async () => {
-            const code = searchParams.get('code');
             const state = searchParams.get('state');
             const errorParam = searchParams.get('error');
 
@@ -73,7 +87,12 @@ export default function GoogleCallback() {
                     }
 
                     if (data.data?.access_token) {
-                        // Store tokens
+                        // Store tokens using SDK's localStorage keys
+                        localStorage.setItem(UNIAUTH_ACCESS_TOKEN_KEY, data.data.access_token);
+                        if (data.data.refresh_token) {
+                            localStorage.setItem(UNIAUTH_REFRESH_TOKEN_KEY, data.data.refresh_token);
+                        }
+                        // Also store in legacy keys for AuthContext compatibility
                         localStorage.setItem('access_token', data.data.access_token);
                         if (data.data.refresh_token) {
                             localStorage.setItem('refresh_token', data.data.refresh_token);
@@ -120,6 +139,12 @@ export default function GoogleCallback() {
             console.log('MFA verify response:', data);
 
             if (data.success && data.data?.access_token) {
+                // Store tokens using SDK's localStorage keys
+                localStorage.setItem(UNIAUTH_ACCESS_TOKEN_KEY, data.data.access_token);
+                if (data.data.refresh_token) {
+                    localStorage.setItem(UNIAUTH_REFRESH_TOKEN_KEY, data.data.refresh_token);
+                }
+                // Also store in legacy keys for AuthContext compatibility
                 localStorage.setItem('access_token', data.data.access_token);
                 if (data.data.refresh_token) {
                     localStorage.setItem('refresh_token', data.data.refresh_token);
@@ -130,9 +155,13 @@ export default function GoogleCallback() {
                 // Force full page reload to update AuthContext
                 setTimeout(() => window.location.href = '/', 500);
             } else {
+                // Clear stale MFA token on failure - it may be expired
+                sessionStorage.removeItem('mfa_token');
                 setError(data.error?.message || 'MFA verification failed');
             }
         } catch (err: any) {
+            // Clear stale MFA token on error
+            sessionStorage.removeItem('mfa_token');
             setError(err.message || 'Network error');
         } finally {
             setMfaLoading(false);
@@ -173,9 +202,16 @@ export default function GoogleCallback() {
                                 Verify
                             </Button>
                         </form>
-                        <a href="/login" className="block mt-4 text-center text-slate-500 hover:text-slate-300 text-sm">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                sessionStorage.removeItem('mfa_token');
+                                window.location.href = '/login';
+                            }}
+                            className="block mt-4 text-center text-slate-500 hover:text-slate-300 text-sm w-full"
+                        >
                             Cancel and go back
-                        </a>
+                        </button>
                     </CardContent>
                 </Card>
             </div>
