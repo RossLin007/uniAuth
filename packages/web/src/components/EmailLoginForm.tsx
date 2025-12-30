@@ -240,17 +240,19 @@ export default function EmailLoginForm() {
                 />
 
                 {/* Code Input */}
-                <div className="flex justify-between items-center">
-                    <OtpInput
-                        value={code}
-                        onChange={setCode}
-                        disabled={loading}
-                    />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                        <OtpInput
+                            value={code}
+                            onChange={setCode}
+                            disabled={loading}
+                        />
+                    </div>
                     <button
                         type="button"
                         onClick={handleSendCodeClick}
                         disabled={sendingCode || countdown > 0}
-                        className="ml-2 px-3 py-2 h-12 text-sm rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed hover:bg-sky-100 dark:hover:bg-sky-900/30 transition-colors"
+                        className="shrink-0 w-full sm:w-auto px-4 py-2.5 text-sm rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed hover:bg-sky-100 dark:hover:bg-sky-900/30 border border-sky-200 dark:border-sky-700 transition-colors"
                     >
                         {sendingCode ? (
                             <span className="inline-block w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></span>

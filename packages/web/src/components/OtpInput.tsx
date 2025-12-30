@@ -129,7 +129,7 @@ export default function OtpInput({
     };
 
     return (
-        <div className={`flex gap-1.5 ${className}`} role="group" aria-label="验证码输入">
+        <div className={`flex gap-1 justify-start ${className}`} role="group" aria-label="验证码输入">
             {digits.map((digit, index) => (
                 <input
                     key={index}
@@ -148,7 +148,7 @@ export default function OtpInput({
                     placeholder={focusedIndex === index ? '' : placeholder}
                     aria-label={`第 ${index + 1} 位验证码`}
                     className={`
-                        w-8 h-10 text-center text-base font-bold rounded-lg
+                        w-9 h-11 sm:w-10 sm:h-12 text-center text-lg font-bold rounded-lg
                         border transition-all duration-150
                         ${focusedIndex === index
                             ? 'border-sky-500 ring-2 ring-sky-500/20 bg-white dark:bg-slate-800'
