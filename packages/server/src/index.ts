@@ -65,8 +65,8 @@ app.use(
         xXssProtection: '1; mode=block',
         contentSecurityPolicy: env.NODE_ENV === 'production' ? {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"], // Needed for Swagger UI
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"], // Needed for Swagger UI
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
             imgSrc: ["'self'", 'data:', 'https:'],
         } : undefined,
     })

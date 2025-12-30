@@ -42,6 +42,8 @@ export interface UniAuthConfig {
     appKey?: string;
     /** OAuth2 Client ID (for OAuth flows) */
     clientId?: string;
+    /** OAuth2 Client Secret (for trusted SPA clients like internal admin consoles) */
+    clientSecret?: string;
     /** Storage type for tokens */
     storage?: 'localStorage' | 'sessionStorage' | 'memory';
     /** Callback when tokens are refreshed */

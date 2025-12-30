@@ -1,6 +1,6 @@
 {
     "name": "@55387.ai/uniauth-server",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "description": "UniAuth Server SDK - Token verification for Node.js backends",
     "type": "module",
     "main": "./dist/index.js",

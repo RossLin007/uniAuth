@@ -13,7 +13,9 @@ import SSOCallback from '@/pages/SSOCallback';
 import { Layout } from '@/components/Layout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { token, loading } = useAuth();
+  const { token, user, loading } = useAuth();
+
+  // Show loading while validating token
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -21,7 +23,10 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  return token ? <>{children}</> : <Navigate to="/login" />;
+
+  // Only allow access if both token exists AND user is loaded (validation passed)
+  // This prevents showing protected pages with an expired token
+  return (token && user) ? <>{children}</> : <Navigate to="/login" />;
 }
 
 function AppRoutes() {
