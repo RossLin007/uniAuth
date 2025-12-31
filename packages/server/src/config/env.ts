@@ -4,7 +4,9 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+// Load .env first, then .env.local for local overrides (development convenience)
 config({ path: resolve(__dirname, '../../../../.env') });
+config({ path: resolve(__dirname, '../../../../.env.local'), override: true });
 
 import { z } from 'zod';
 

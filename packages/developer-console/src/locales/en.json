@@ -80,6 +80,8 @@
         "oauth2Desc": "Implement OAuth2 flows for third-party apps",
         "webhooks": "Webhooks & Events",
         "webhooksDesc": "Real-time notifications for user events",
+        "serverSdk": "Server SDK",
+        "serverSdkDesc": "Validate tokens and protect APIs in Node.js backends",
         "sdkTitle": "SDK Installation",
         "sdkDesc": "Install the UniAuth SDK for quick integration",
         "basicUsage": "Basic Usage",
@@ -111,7 +113,15 @@
             "eventMfaEnabled": "Triggered when MFA is enabled",
             "eventMfaDisabled": "Triggered when MFA is disabled",
             "webhookPayload": "Webhook Payload",
-            "verifySignature": "Verify Signature"
+            "verifySignature": "Verify Signature",
+            "serverInstall": "Install Server SDK",
+            "serverInit": "Initialize Server SDK",
+            "serverVerifyToken": "Verify Access Token",
+            "expressMiddleware": "Express Middleware",
+            "honoMiddleware": "Hono Middleware",
+            "tokenIntrospection": "Token Introspection (RFC 7662)",
+            "errorHandling": "Error Handling",
+            "availableMethods": "Available Methods"
         }
     },
     "stats": {

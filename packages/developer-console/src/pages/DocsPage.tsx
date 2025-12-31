@@ -2,14 +2,15 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { BookOpen, ExternalLink, Code, Webhook, Shield, Key, ArrowLeft } from 'lucide-react';
+import { BookOpen, ExternalLink, Code, Webhook, Shield, Key, ArrowLeft, Server } from 'lucide-react';
 import { API_BASE_URL } from '@/config/api';
 import QuickStartDoc from '@/components/docs/QuickStartDoc';
 import AuthenticationDoc from '@/components/docs/AuthenticationDoc';
 import OAuth2Doc from '@/components/docs/OAuth2Doc';
 import WebhooksDoc from '@/components/docs/WebhooksDoc';
+import ServerSdkDoc from '@/components/docs/ServerSdkDoc';
 
-type DocSection = 'quickstart' | 'authentication' | 'oauth2' | 'webhooks';
+type DocSection = 'quickstart' | 'authentication' | 'oauth2' | 'webhooks' | 'serverSdk';
 
 export default function DocsPage() {
     const { t } = useTranslation();
@@ -44,6 +45,12 @@ export default function DocsPage() {
             icon: Webhook,
             title: t('docs.webhooks'),
             description: t('docs.webhooksDesc'),
+        },
+        {
+            id: 'serverSdk' as DocSection,
+            icon: Server,
+            title: t('docs.serverSdk'),
+            description: t('docs.serverSdkDesc'),
         }
     ];
 
@@ -60,6 +67,8 @@ export default function DocsPage() {
                 return <OAuth2Doc />;
             case 'webhooks':
                 return <WebhooksDoc />;
+            case 'serverSdk':
+                return <ServerSdkDoc />;
             default:
                 return null;
         }
@@ -93,9 +102,15 @@ export default function DocsPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
-                            <p className={`text-sm font-medium mb-2 ${textPrimary}`}>npm / pnpm</p>
+                            <p className={`text-sm font-medium mb-2 ${textPrimary}`}>Frontend (Client SDK)</p>
                             <code className="text-sm text-blue-500 dark:text-blue-400">
                                 pnpm add @55387.ai/uniauth-client
+                            </code>
+                        </div>
+                        <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+                            <p className={`text-sm font-medium mb-2 ${textPrimary}`}>Backend (Server SDK)</p>
+                            <code className="text-sm text-blue-500 dark:text-blue-400">
+                                pnpm add @55387.ai/uniauth-server
                             </code>
                         </div>
                     </CardContent>

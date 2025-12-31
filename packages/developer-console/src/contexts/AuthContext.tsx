@@ -29,7 +29,7 @@ interface AuthContextType {
     loginWithEmail: (email: string, code: string) => Promise<AuthResult>;
     sendEmailCode: (email: string) => Promise<AuthResult>;
     // SSO Login
-    loginWithSSO: () => void;
+    loginWithSSO: () => Promise<void>;
     // Google OAuth (legacy)
     loginWithGoogle: () => void;
     // Logout
@@ -55,9 +55,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const init = async () => {
             if (token) {
                 try {
-                    // Fetch user info from the server
-                    const userInfo = await uniauth.getCurrentUser();
-                    if (userInfo) {
+                    // Use direct fetch instead of SDK to avoid token storage mismatch
+                    const response = await fetch(`${API_BASE_URL}/api/v1/user/me`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch user info');
+                    }
+
+                    const data = await response.json();
+
+                    if (data.success && data.data) {
+                        const userInfo = data.data;
                         setUser({
                             id: userInfo.id,
                             email: userInfo.email,
@@ -130,23 +144,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // SSO Login - redirects to central SSO service
     // If user is already logged in at SSO, they'll be automatically logged in here (silent auth)
-    const loginWithSSO = useCallback(() => {
+    const loginWithSSO = useCallback(async () => {
         // Generate a random state for CSRF protection
         const state = Math.random().toString(36).substring(7);
         localStorage.setItem('oauth_state', state);
 
-        // Build OAuth authorize URL
+        // Generate PKCE code_verifier and code_challenge
+        const { generateCodeVerifier, generateCodeChallenge, storeCodeVerifier } = await import('@/lib/pkce');
+        const codeVerifier = generateCodeVerifier();
+        const { challenge: codeChallenge, method: codeChallengeMethod } = await generateCodeChallenge(codeVerifier);
+        storeCodeVerifier(codeVerifier);
+
+        // Build OAuth authorize URL with PKCE
         const params = new URLSearchParams({
-            client_id: 'developer_console', // This should match the registered app client_id
+            client_id: 'developer_console',
             redirect_uri: window.location.origin + '/auth/callback',
             response_type: 'code',
             scope: 'openid profile email',
             state,
+            code_challenge: codeChallenge,
+            code_challenge_method: codeChallengeMethod,
         });
 
         // Redirect to SSO OAuth authorize endpoint
-        // If user has SSO session, they'll be auto-redirected back with code
-        // If not, they'll be redirected to the login page
         window.location.href = `${API_BASE_URL}/api/v1/oauth2/authorize?${params}`;
     }, []);
 

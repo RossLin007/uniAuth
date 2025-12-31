@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { API_BASE_URL } from '@/config/api';
 
@@ -11,10 +11,16 @@ import { API_BASE_URL } from '@/config/api';
  */
 export default function SSOCallback() {
     const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
     const [error, setError] = useState<string | null>(null);
+    const isProcessingRef = useRef(false);
 
     useEffect(() => {
+        // Prevent duplicate execution (React StrictMode runs useEffect twice)
+        if (isProcessingRef.current) {
+            return;
+        }
+        isProcessingRef.current = true;
+
         const code = searchParams.get('code');
         const state = searchParams.get('state');
         const errorParam = searchParams.get('error');
@@ -43,10 +49,14 @@ export default function SSOCallback() {
 
         // Exchange code for tokens
         exchangeCodeForTokens(code);
-    }, [searchParams, navigate]);
+    }, [searchParams]);
 
     const exchangeCodeForTokens = async (code: string) => {
         try {
+            // Retrieve PKCE code_verifier stored during authorize
+            const { getAndClearCodeVerifier } = await import('@/lib/pkce');
+            const codeVerifier = getAndClearCodeVerifier();
+
             const response = await fetch(`${API_BASE_URL}/api/v1/oauth2/token`, {
                 method: 'POST',
                 headers: {
@@ -57,6 +67,8 @@ export default function SSOCallback() {
                     client_id: 'developer_console',
                     code,
                     redirect_uri: window.location.origin + '/auth/callback',
+                    // Use PKCE code_verifier instead of client_secret
+                    ...(codeVerifier ? { code_verifier: codeVerifier } : {}),
                 }),
             });
 
@@ -73,8 +85,8 @@ export default function SSOCallback() {
                 if (data.refresh_token) {
                     localStorage.setItem('refresh_token', data.refresh_token);
                 }
-                // Redirect to dashboard
-                navigate('/', { replace: true });
+                // Redirect to dashboard with full page reload to reinitialize AuthContext
+                window.location.href = '/';
             } else {
                 setError('Failed to get access token.');
             }

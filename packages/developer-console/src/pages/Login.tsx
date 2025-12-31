@@ -218,7 +218,7 @@ export default function Login() {
                                 {/* SSO Quick Login - for users already logged in at SSO portal */}
                                 <button
                                     type="button"
-                                    onClick={loginWithSSO}
+                                    onClick={() => loginWithSSO().catch((err: Error) => console.error('SSO login error:', err))}
                                     className="w-full flex items-center justify-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border border-blue-200/50 dark:border-blue-500/20 hover:border-blue-300 dark:hover:border-blue-500/30 text-blue-700 dark:text-blue-300 font-medium transition-all group shadow-sm dark:shadow-none"
                                 >
                                     <Command className="w-5 h-5 text-blue-500 dark:text-blue-400" />

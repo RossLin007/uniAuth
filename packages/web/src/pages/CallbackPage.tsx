@@ -27,9 +27,9 @@ export default function CallbackPage() {
 
     useEffect(() => {
         const handleCallback = async () => {
-            // Prevent duplicate calls (React StrictMode or re-renders)
+            // Prevent duplicate API calls (React StrictMode or re-renders)
             if (hasCalledRef.current) {
-                console.log('OAuth callback already called, skipping...');
+                console.log('[CallbackPage] OAuth callback already called, skipping...');
                 return;
             }
             hasCalledRef.current = true;
@@ -68,8 +68,8 @@ export default function CallbackPage() {
                         return;
                     }
 
-                    // Link successful, redirect to home (settings)
-                    navigate('/');
+                    // Link successful, check for pending OAuth flow first
+                    completeOAuthFlowIfNeeded(() => navigate('/'));
                     return;
                 }
 
@@ -104,16 +104,57 @@ export default function CallbackPage() {
                 // Store auth data
                 setAuth(data.data.user, data.data.access_token, data.data.refresh_token);
 
-                // Redirect to home
-                navigate('/');
+                // Complete OAuth flow if there's one pending, otherwise go home
+                completeOAuthFlowIfNeeded(() => navigate('/'));
             } catch (err) {
-                console.error('OAuth callback error:', err);
+                console.error('[CallbackPage] OAuth callback error:', err);
                 setError('An error occurred during login');
             }
         };
 
         handleCallback();
     }, [provider, searchParams, navigate, setAuth]);
+
+    /**
+     * Helper function to complete a pending OAuth flow after successful login
+     * Checks sessionStorage for saved OAuth params and redirects to authorize endpoint
+     */
+    const completeOAuthFlowIfNeeded = (fallback: () => void) => {
+        const savedOAuthFlow = sessionStorage.getItem('oauth_flow_params');
+        console.log('[CallbackPage] Checking for saved OAuth flow params:', savedOAuthFlow);
+
+        if (savedOAuthFlow) {
+            try {
+                const oauthParams = JSON.parse(savedOAuthFlow);
+                console.log('[CallbackPage] Found OAuth flow params, completing flow:', oauthParams);
+                sessionStorage.removeItem('oauth_flow_params'); // Clean up
+
+                // Build the OAuth authorize URL to complete the original flow
+                const params = new URLSearchParams();
+                params.set('client_id', oauthParams.client_id);
+                params.set('redirect_uri', oauthParams.redirect_uri);
+                params.set('response_type', oauthParams.response_type);
+                if (oauthParams.scope) params.set('scope', oauthParams.scope);
+                if (oauthParams.state) params.set('state', oauthParams.state);
+                if (oauthParams.nonce) params.set('nonce', oauthParams.nonce);
+                if (oauthParams.code_challenge) params.set('code_challenge', oauthParams.code_challenge);
+                if (oauthParams.code_challenge_method) params.set('code_challenge_method', oauthParams.code_challenge_method);
+
+                const redirectUrl = `${API_BASE_URL}/api/v1/oauth2/authorize?${params.toString()}`;
+                console.log('[CallbackPage] Redirecting to complete OAuth flow:', redirectUrl);
+
+                // Use window.location.href for full page redirect
+                window.location.href = redirectUrl;
+                return;
+            } catch (e) {
+                console.error('[CallbackPage] Failed to parse saved OAuth flow params:', e);
+                sessionStorage.removeItem('oauth_flow_params');
+            }
+        }
+
+        // No OAuth flow to complete - call fallback
+        fallback();
+    };
 
     const handleMFABack = () => {
         // Reset and go to login page

@@ -80,6 +80,8 @@
         "oauth2Desc": "为第三方应用实现 OAuth2 流程",
         "webhooks": "Webhooks 与事件",
         "webhooksDesc": "用户事件实时通知",
+        "serverSdk": "服务端 SDK",
+        "serverSdkDesc": "在 Node.js 后端验证令牌并保护 API",
         "sdkTitle": "SDK 安装",
         "sdkDesc": "安装 UniAuth SDK 快速集成",
         "basicUsage": "基础用法",
@@ -111,7 +113,15 @@
             "eventMfaEnabled": "MFA 启用时触发",
             "eventMfaDisabled": "MFA 禁用时触发",
             "webhookPayload": "Webhook 载荷",
-            "verifySignature": "签名验证"
+            "verifySignature": "签名验证",
+            "serverInstall": "安装服务端 SDK",
+            "serverInit": "初始化服务端 SDK",
+            "serverVerifyToken": "验证访问令牌",
+            "expressMiddleware": "Express 中间件",
+            "honoMiddleware": "Hono 中间件",
+            "tokenIntrospection": "令牌内省 (RFC 7662)",
+            "errorHandling": "错误处理",
+            "availableMethods": "可用方法"
         }
     },
     "stats": {

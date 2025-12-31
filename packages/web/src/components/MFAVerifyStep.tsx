@@ -60,15 +60,48 @@ export default function MFAVerifyStep({ user, mfaToken, onBack }: MFAVerifyStepP
             // Login successful
             setAuth(data.data.user, data.data.access_token, data.data.refresh_token);
 
-            // Redirect - check if this is an OAuth flow
-            const redirectUrl = getPostLoginRedirect();
+            // Check for OAuth flow - first check URL params (from PhoneLoginForm/EmailLoginForm)
             if (isOAuthFlow()) {
                 // OAuth flow: redirect to authorize endpoint to complete flow
+                const redirectUrl = getPostLoginRedirect();
+                console.log('[MFAVerifyStep] OAuth flow detected from URL, redirecting:', redirectUrl);
                 window.location.href = redirectUrl;
-            } else {
-                // Normal login: navigate to home
-                navigate('/');
+                return;
             }
+
+            // Then check sessionStorage for saved OAuth params (from Google OAuth callback)
+            const savedOAuthFlow = sessionStorage.getItem('oauth_flow_params');
+            console.log('[MFAVerifyStep] Checking sessionStorage for OAuth params:', savedOAuthFlow);
+
+            if (savedOAuthFlow) {
+                try {
+                    const oauthParams = JSON.parse(savedOAuthFlow);
+                    console.log('[MFAVerifyStep] Found OAuth flow params, completing flow:', oauthParams);
+                    sessionStorage.removeItem('oauth_flow_params'); // Clean up
+
+                    // Build the OAuth authorize URL to complete the original flow
+                    const params = new URLSearchParams();
+                    params.set('client_id', oauthParams.client_id);
+                    params.set('redirect_uri', oauthParams.redirect_uri);
+                    params.set('response_type', oauthParams.response_type);
+                    if (oauthParams.scope) params.set('scope', oauthParams.scope);
+                    if (oauthParams.state) params.set('state', oauthParams.state);
+                    if (oauthParams.nonce) params.set('nonce', oauthParams.nonce);
+                    if (oauthParams.code_challenge) params.set('code_challenge', oauthParams.code_challenge);
+                    if (oauthParams.code_challenge_method) params.set('code_challenge_method', oauthParams.code_challenge_method);
+
+                    const redirectUrl = `${API_BASE_URL}/api/v1/oauth2/authorize?${params.toString()}`;
+                    console.log('[MFAVerifyStep] Redirecting to complete OAuth flow:', redirectUrl);
+                    window.location.href = redirectUrl;
+                    return;
+                } catch (e) {
+                    console.error('[MFAVerifyStep] Failed to parse saved OAuth flow params:', e);
+                    sessionStorage.removeItem('oauth_flow_params');
+                }
+            }
+
+            // No OAuth flow - normal login, navigate to home
+            navigate('/');
         } catch (err) {
             setError((err as Error).message || t('errors.networkError'));
         } finally {

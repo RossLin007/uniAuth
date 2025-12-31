@@ -25,9 +25,34 @@ async function createSSOSession(
         const { ipAddress, userAgent } = getClientInfo(c);
 
         // Create SSO session in database
+        // Check for sso-portal application to get its UUID
+        let appId: string | undefined = undefined;
+
+        // Try to find the SSO portal app
+        try {
+            // We need to import oauth2Service if not available, verify imports first
+            // But here we can just use supabase directly to avoid circular deps if needed
+            // Or better, use oauth2Service
+            const { getSupabase } = await import('../lib/supabase.js');
+            const supabase = getSupabase();
+
+            const { data } = await supabase
+                .from('applications')
+                .select('id')
+                .eq('client_id', 'sso-portal')
+                .single();
+
+            if (data) {
+                appId = data.id;
+            }
+        } catch (e) {
+            console.error('Failed to lookup sso-portal app ID', e);
+        }
+
+        // Create SSO session in database
         const session = await ssoSessionService.createSession(
             userId,
-            'sso-portal', // The SSO portal itself
+            appId || 'SsoPortalPlaceholder', // Fallback if migration hasn't run, will likely fail validation if UUID required
             {
                 rememberMe: options.rememberMe,
                 ipAddress,

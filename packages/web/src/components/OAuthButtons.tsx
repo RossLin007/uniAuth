@@ -66,6 +66,32 @@ export default function OAuthButtons() {
             // Explicitly pass the current origin as the redirect URI base
             // This fixes the mismatch between 'sso' (backend default) and 'auth' (actual frontend)
             const redirectUri = `${window.location.origin}/auth/callback/${providerId}`;
+
+            // IMPORTANT: Preserve OAuth flow params before redirecting to external OAuth provider
+            // These params need to be restored after the OAuth callback to complete the original flow
+            const urlParams = new URLSearchParams(window.location.search);
+            const clientId = urlParams.get('client_id');
+            const originalRedirectUri = urlParams.get('redirect_uri');
+            const responseType = urlParams.get('response_type');
+
+            if (clientId && originalRedirectUri && responseType) {
+                // Store the original OAuth flow params to restore after Google callback
+                const oauthFlowParams = {
+                    client_id: clientId,
+                    redirect_uri: originalRedirectUri,
+                    response_type: responseType,
+                    scope: urlParams.get('scope') || '',
+                    state: urlParams.get('state') || '',
+                    nonce: urlParams.get('nonce') || '',
+                    code_challenge: urlParams.get('code_challenge') || '',
+                    code_challenge_method: urlParams.get('code_challenge_method') || '',
+                };
+                console.log('[OAuthButtons] Saving OAuth flow params to sessionStorage:', oauthFlowParams);
+                sessionStorage.setItem('oauth_flow_params', JSON.stringify(oauthFlowParams));
+            } else {
+                console.log('[OAuthButtons] No OAuth flow params found in URL:', { clientId, originalRedirectUri, responseType });
+            }
+
             const response = await fetch(`${API_BASE_URL}/api/v1/auth/oauth/${providerId}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`);
             const data = await response.json();
 
