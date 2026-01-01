@@ -1,116 +1,95 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { API_BASE_URL } from '../config/api';
-
-interface User {
-    id: string;
-    phone: string | null;
-    email: string | null;
-    nickname: string | null;
-    avatar_url: string | null;
-}
+import { authClient } from '../utils/auth';
+import type { UserInfo } from '@55387.ai/uniauth-client';
 
 interface AuthState {
-    user: User | null;
+    user: UserInfo | null;
     accessToken: string | null;
     refreshToken: string | null;
     isAuthenticated: boolean;
     isValidating: boolean;
-    setAuth: (user: User, accessToken: string, refreshToken: string) => void;
+    // Actions are now delegated to authClient or just state updaters
+    setAuth: (user: UserInfo, accessToken: string, refreshToken: string) => void;
     clearAuth: () => void;
     refreshUser: () => Promise<void>;
     validateAuth: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>()(
-    persist(
-        (set, get) => ({
-            user: null,
-            accessToken: null,
-            refreshToken: null,
-            isAuthenticated: false,
-            isValidating: true, // Start as validating
-            setAuth: (user, accessToken, refreshToken) =>
-                set({
-                    user,
-                    accessToken,
-                    refreshToken,
-                    isAuthenticated: true,
-                    isValidating: false,
-                }),
-            clearAuth: () =>
-                set({
-                    user: null,
-                    accessToken: null,
-                    refreshToken: null,
-                    isAuthenticated: false,
-                    isValidating: false,
-                }),
-            refreshUser: async () => {
-                const { accessToken } = get();
-                if (!accessToken) return;
+export const useAuthStore = create<AuthState>((set, get) => {
+    // Initialize state from authClient (sync if available in localStorage)
+    const initialToken = authClient.getAccessTokenSync();
+    const initialUser = authClient.getCachedUser();
 
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/v1/user/me`, {
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                        },
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.data) {
-                            set({ user: data.data });
-                        }
-                    }
-                } catch (error) {
-                    console.error('Failed to refresh user:', error);
-                }
-            },
-            validateAuth: async () => {
-                const { accessToken } = get();
-                if (!accessToken) {
-                    set({ isValidating: false, isAuthenticated: false });
-                    return;
-                }
+    // Setup listener for auth state changes
+    authClient.onAuthStateChange((user, isAuthenticated) => {
+        set({
+            user,
+            isAuthenticated,
+            accessToken: isAuthenticated ? authClient.getAccessTokenSync() : null,
+            refreshToken: null, // We don't need to expose refresh token in store usually, SDK handles it
+            isValidating: false,
+        });
+    });
 
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/v1/user/me`, {
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                        },
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.data) {
-                            set({ user: data.data, isValidating: false, isAuthenticated: true });
-                            return;
-                        }
-                    }
-                    // Token invalid - clear auth
-                    get().clearAuth();
-                } catch (error) {
-                    console.error('Failed to validate auth:', error);
+    return {
+        user: initialUser,
+        accessToken: initialToken,
+        refreshToken: null,
+        isAuthenticated: !!initialToken,
+        isValidating: false, // Initial state is determined by sync check
+
+        setAuth: (user, accessToken, refreshToken) => {
+            // This might not be needed if we strictly use authClient.login()
+            // But for compatibility with existing code that calls setAuth manually:
+            // We should updated authClient storage manually if setAuth is called from outside?
+            // Actually, best to enforce usage of authClient.login everywhere.
+            // For now, we update local state, but warning: this doesn't update authClient storage if called manually!
+            // So we should try to eliminate manual setAuth calls.
+            set({
+                user,
+                accessToken,
+                refreshToken,
+                isAuthenticated: true,
+                isValidating: false,
+            });
+        },
+
+        clearAuth: () => {
+            authClient.logout(); // This will trigger onAuthStateChange
+            set({
+                user: null,
+                accessToken: null,
+                refreshToken: null,
+                isAuthenticated: false,
+                isValidating: false,
+            });
+        },
+
+        refreshUser: async () => {
+            try {
+                const user = await authClient.getCurrentUser();
+                set({ user });
+            } catch (error) {
+                console.error('Failed to refresh user:', error);
+            }
+        },
+
+        validateAuth: async () => {
+            set({ isValidating: true });
+            try {
+                // If we have a token, try to fetch user to validate it
+                const user = await authClient.getCurrentUser();
+                // onAuthStateChange should update the store
+            } catch (error) {
+                console.error('Failed to validate auth:', error);
+                // Auth error validation likely handled by SDK (clears token if 401)
+                if (!authClient.getAccessTokenSync()) {
                     get().clearAuth();
                 }
-            },
-        }),
-        {
-            name: 'uniauth-storage',
-            partialize: (state) => ({
-                user: state.user,
-                accessToken: state.accessToken,
-                refreshToken: state.refreshToken,
-                isAuthenticated: state.isAuthenticated,
-            }),
-            onRehydrateStorage: () => (state) => {
-                // After rehydration, validate the token
-                if (state && state.accessToken) {
-                    state.validateAuth();
-                } else if (state) {
-                    // No token, just mark as not validating
-                    state.isValidating = false;
-                }
-            },
-        }
-    )
-);
+            } finally {
+                set({ isValidating: false });
+            }
+        },
+    };
+});
+

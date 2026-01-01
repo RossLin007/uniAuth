@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { API_BASE_URL } from '../config/api';
+import { authClient } from '../utils/auth';
+import { useOAuthRedirect } from '../hooks/useOAuthRedirect';
+import { useToast } from '../context/ToastContext';
+
 import CountryCodeSelector from './CountryCodeSelector';
 import OtpInput from './OtpInput';
 import MFAVerifyStep from './MFAVerifyStep';
 import { defaultCountry, type Country } from '../data/countries';
-import { useOAuthRedirect } from '../hooks/useOAuthRedirect';
-import { useToast } from '../context/ToastContext';
 
 interface User {
     id: string;
@@ -96,29 +97,17 @@ export default function PhoneLoginForm() {
         setSendingCode(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/auth/phone/send-code`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    phone: fullPhone,
-                }),
-            });
+            const data = await authClient.sendCode(fullPhone, 'login');
 
-            const data = await response.json();
-
-            if (!data.success) {
-                setError(data.error?.message || t('errors.sendCodeFailed'));
-                if (data.data?.retry_after) {
-                    setCountdown(data.data.retry_after);
-                }
-                return;
-            }
-
-            setCountdown(data.data.retry_after || 60);
+            // Handle success
+            setCountdown(data.retry_after || 60);
             toastSuccess(t('common.codeSent', 'Verification code sent!'));
-        } catch (err) {
+        } catch (err: any) {
             console.error('Send code error:', err);
-            setError(t('errors.networkError'));
+            setError(err.message || t('errors.networkError'));
+            if (err.code === 'RATELIMIT' && err.retry_after) {
+                setCountdown(err.retry_after);
+            }
         } finally {
             setSendingCode(false);
         }
@@ -141,42 +130,26 @@ export default function PhoneLoginForm() {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/auth/phone/verify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: fullPhone, code }),
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                setError(data.error?.message || t('errors.loginFailed'));
-                return;
-            }
+            const data = await authClient.loginWithCode(fullPhone, code);
 
             // Check if MFA is required
-            if (data.data.mfa_required) {
-                setMfaUser(data.data.user);
-                setMfaToken(data.data.mfa_token);
+            if (data.mfa_required) {
+                setMfaUser(data.user);
+                setMfaToken(data.mfa_token || '');
                 setMfaRequired(true);
                 return;
             }
 
-            // Store auth data
-            setAuth(data.data.user, data.data.access_token, data.data.refresh_token);
-
-            // Redirect - check if this is an OAuth flow
+            // Success, redirect
             const redirectUrl = getPostLoginRedirect();
             if (isOAuthFlow()) {
-                // OAuth flow: redirect to authorize endpoint to complete flow
                 window.location.href = redirectUrl;
             } else {
-                // Normal login: navigate to home
                 navigate('/');
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Login error:', err);
-            setError(t('errors.networkError'));
+            setError(err.message || t('errors.loginFailed'));
         } finally {
             setLoading(false);
         }

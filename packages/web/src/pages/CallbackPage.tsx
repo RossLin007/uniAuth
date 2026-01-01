@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { authClient } from '../utils/auth';
 import { API_BASE_URL } from '../config/api';
 import MFAVerifyStep from '../components/MFAVerifyStep';
 
@@ -74,35 +75,19 @@ export default function CallbackPage() {
                 }
 
                 // Normal Login Flow
-                const response = await fetch(`${API_BASE_URL}/api/v1/auth/oauth/${provider}/callback`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        code,
-                        state,
-                        redirect_uri: redirectUri
-                    }),
-                });
-
-                const data = await response.json();
-
-                if (!data.success) {
-                    setError(data.error?.message || 'OAuth login failed');
-                    return;
-                }
+                const data = await authClient.handleOAuthCallback(provider!, code, redirectUri);
 
                 // Check if MFA is required
-                if (data.data.mfa_required) {
-                    setMfaUser(data.data.user);
-                    setMfaToken(data.data.mfa_token);
+                if (data.mfa_required) {
+                    setMfaUser(data.user);
+                    setMfaToken(data.mfa_token || '');
                     setMfaRequired(true);
                     return;
                 }
 
-                // Store auth data
-                setAuth(data.data.user, data.data.access_token, data.data.refresh_token);
+                // Store auth data (synced via listener)
+                // setAuth call is no longer needed as authClient.onAuthStateChange handles it
+                // setAuth(data.user, data.access_token, data.refresh_token);
 
                 // Complete OAuth flow if there's one pending, otherwise go home
                 completeOAuthFlowIfNeeded(() => navigate('/'));

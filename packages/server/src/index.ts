@@ -76,7 +76,22 @@ app.use(
 app.use(
     '*',
     cors({
-        origin: env.CORS_ORIGINS.split(',').map((o) => o.trim()),
+        origin: (origin, c) => {
+            // Allow all localhost ports
+            if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+                return origin;
+            }
+
+            const allowedDomains = env.CORS_ORIGINS.split(',').map((o) => o.trim());
+            // Allow specified domains and their subdomains
+            for (const domain of allowedDomains) {
+                if (origin === `https://${domain}` || origin.endsWith(`.${domain}`)) {
+                    return origin;
+                }
+            }
+
+            return undefined;
+        },
         allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization', 'X-App-Key', 'X-Client-Id', 'X-Client-Secret', 'X-UniAuth-Event', 'X-UniAuth-Delivery', 'X-UniAuth-Signature'],
         exposeHeaders: ['Content-Length', 'X-Request-Id', 'X-RateLimit-Limit', 'X-RateLimit-Remaining', 'Retry-After'],

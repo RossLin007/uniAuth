@@ -543,10 +543,10 @@ export class UniAuthClient {
      * Handle OAuth callback (for social login)
      * 处理 OAuth 回调（社交登录）
      */
-    async handleOAuthCallback(provider: string, code: string): Promise<LoginResult> {
-        const response = await this.request<LoginResult>('/api/v1/auth/oauth/callback', {
+    async handleOAuthCallback(provider: string, code: string, redirectUri?: string): Promise<LoginResult> {
+        const response = await this.request<LoginResult>(`/api/v1/auth/oauth/${provider}/callback`, {
             method: 'POST',
-            body: JSON.stringify({ provider, code }),
+            body: JSON.stringify({ code, redirect_uri: redirectUri }),
         });
 
         if (!response.success || !response.data) {
@@ -1279,6 +1279,7 @@ export class UniAuthClient {
             this.storage.setRefreshToken(response.data.refresh_token);
 
             this.config.onTokenRefresh?.(response.data);
+            this.notifyAuthStateChange(this.currentUser);
 
             return true;
         } catch (error) {

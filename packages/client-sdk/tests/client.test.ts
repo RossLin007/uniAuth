@@ -128,6 +128,66 @@ describe('UniAuthClient - Email Validation', () => {
     });
 });
 
+describe('UniAuthClient - OAuth Callback', () => {
+    let client: UniAuthClient;
+
+    beforeEach(() => {
+        // Mock localStorage
+        const localStorageMock = {
+            getItem: vi.fn(),
+            setItem: vi.fn(),
+            removeItem: vi.fn(),
+            clear: vi.fn(),
+        };
+        Object.defineProperty(global, 'localStorage', {
+            value: localStorageMock,
+            writable: true
+        });
+
+        client = new UniAuthClient({
+            baseUrl: 'https://test.example.com',
+            clientId: 'test-client',
+        });
+    });
+
+    it('should handle OAuth callback with correct URL and parameters', async () => {
+        const mockFetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({
+                success: true,
+                data: {
+                    user: { id: '123' },
+                    access_token: 'access_token',
+                    refresh_token: 'refresh_token',
+                },
+            }),
+        });
+        global.fetch = mockFetch;
+
+        const provider = 'google';
+        const code = 'auth_code';
+        const redirectUri = 'https://app.com/callback';
+
+        await client.handleOAuthCallback(provider, code, redirectUri);
+
+        expect(mockFetch).toHaveBeenCalledWith(
+            expect.stringContaining(`/api/v1/auth/oauth/${provider}/callback`),
+            expect.objectContaining({
+                method: 'POST',
+                body: expect.stringContaining('"redirect_uri":"https://app.com/callback"'),
+            })
+        );
+
+        // Also verify code is present
+        expect(mockFetch).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                body: expect.stringContaining('"code":"auth_code"'),
+            })
+        );
+    });
+});
+
 describe('UniAuthClient - Error Handling', () => {
     let client: UniAuthClient;
 
