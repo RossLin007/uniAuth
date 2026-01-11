@@ -1332,6 +1332,7 @@ export class UniAuthClient {
                 ...(this.config.appKey && { 'X-App-Key': this.config.appKey }),
                 ...options.headers,
             },
+            credentials: 'include', // Required for SSO session cookie handling
             maxRetries: this.config.enableRetry ? 3 : 0,
             timeout: this.config.timeout,
         };

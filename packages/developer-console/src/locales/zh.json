@@ -119,6 +119,7 @@
             "serverVerifyToken": "验证访问令牌",
             "expressMiddleware": "Express 中间件",
             "honoMiddleware": "Hono 中间件",
+            "localVerification": "本地验证 (JWKS)",
             "tokenIntrospection": "令牌内省 (RFC 7662)",
             "errorHandling": "错误处理",
             "availableMethods": "可用方法"

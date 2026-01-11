@@ -44,6 +44,7 @@ export default function MFAVerifyStep({ user, mfaToken, onBack }: MFAVerifyStepP
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include', // Required for SSO session cookie to be set
                 body: JSON.stringify({
                     mfa_token: mfaToken,
                     code,

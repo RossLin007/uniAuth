@@ -32,7 +32,7 @@ GET /.well-known/openid-configuration
   "scopes_supported": ["openid", "profile", "email", "phone"],
   "response_types_supported": ["code"],
   "grant_types_supported": ["authorization_code", "client_credentials", "refresh_token"],
-  "id_token_signing_alg_values_supported": ["HS256"],
+  "id_token_signing_alg_values_supported": ["RS256"],
   "claims_supported": ["sub", "iss", "aud", "exp", "iat", "email", "name", ...]
 }
 ```
@@ -130,7 +130,7 @@ The `id_token` is a JWT containing user identity claims:
 
 ### Validation Steps
 
-1. **Verify signature** - Check JWT signature using the secret
+1. **Verify signature** - Check JWT signature using the JWKS public key (fetch from `/.well-known/jwks.json`)
 2. **Verify issuer** - `iss` must match your IdP
 3. **Verify audience** - `aud` must match your `client_id`
 4. **Verify expiration** - `exp` must be in the future

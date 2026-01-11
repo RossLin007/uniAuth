@@ -24,6 +24,10 @@ export interface TokenOptions {
  * Generate access token
  * 生成访问令牌
  * 
+ * Now uses RS256 asymmetric signing via JWKS for better security.
+ * Third-party services can verify tokens using public keys only.
+ * 现在使用 RS256 非对称签名，第三方服务只需公钥即可验证。
+ * 
  * @param user - User information
  * @param options - Optional token generation options
  */
@@ -31,28 +35,29 @@ export async function generateAccessToken(
     user: { id: string; phone?: string | null; email?: string | null } | { id: string },
     options?: TokenOptions
 ): Promise<string> {
+    // Import JWKS signing function
+    const { signJWT } = await import('./jwks.js');
+
     const payload: Record<string, unknown> = {};
 
     if ('phone' in user && user.phone) payload.phone = user.phone;
     if ('email' in user && user.email) payload.email = user.email;
     if (options?.scope) payload.scope = options.scope;
 
-    const builder = new jose.SignJWT(payload)
-        .setProtectedHeader({ alg: 'HS256' })
-        .setSubject(user.id)
-        .setIssuer(ISSUER)
-        .setIssuedAt()
-        .setExpirationTime(env.JWT_ACCESS_TOKEN_EXPIRES_IN);
-
-    // Add audience if clientId is provided (for third-party apps)
+    // azp (authorized party) for OAuth2 compliance
     if (options?.clientId) {
-        builder.setAudience(options.clientId);
-        // azp (authorized party) is set in payload for OAuth2 compliance
         payload.azp = options.clientId;
     }
 
-    const jwt = await builder.sign(secret);
-    return jwt;
+    // Sign with RS256 using JWKS private key
+    const accessToken = await signJWT(payload, {
+        issuer: ISSUER,
+        audience: options?.clientId || 'uniauth',
+        subject: user.id,
+        expiresIn: env.JWT_ACCESS_TOKEN_EXPIRES_IN,
+    });
+
+    return accessToken;
 }
 
 /**
@@ -166,6 +171,9 @@ export async function generateIdToken(
  * Verify access token
  * 验证访问令牌
  * 
+ * Now uses RS256 asymmetric verification via JWKS public key.
+ * 现在使用 RS256 非对称验证，通过 JWKS 公钥验证。
+ * 
  * @param token - JWT access token
  * @param expectedAudience - Optional expected audience (client_id) to validate
  */
@@ -173,13 +181,17 @@ export async function verifyAccessToken(
     token: string,
     expectedAudience?: string
 ): Promise<JWTPayload> {
+    // Import JWKS verification function
+    const { verifyJWT } = await import('./jwks.js');
+
     const options: jose.JWTVerifyOptions = {};
 
     if (expectedAudience) {
         options.audience = expectedAudience;
     }
 
-    const { payload } = await jose.jwtVerify(token, secret, options);
+    // Verify with RS256 using JWKS public key
+    const { payload } = await verifyJWT(token, options);
 
     return {
         sub: payload.sub as string,

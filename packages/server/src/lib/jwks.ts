@@ -111,6 +111,21 @@ export async function signJWT(
 }
 
 /**
+ * Verify a JWT using the public key
+ * 使用公钥验证 JWT
+ * 
+ * @param token - JWT token to verify
+ * @param options - Verification options (audience, etc.)
+ */
+export async function verifyJWT(
+    token: string,
+    options?: jose.JWTVerifyOptions
+): Promise<jose.JWTVerifyResult> {
+    const { publicKey } = await getKeyPair();
+    return jose.jwtVerify(token, publicKey, options);
+}
+
+/**
  * Clear cached key pair (for key rotation)
  * In production, implement proper key rotation with overlap period
  */

@@ -111,10 +111,58 @@ app.get('/api/profile', (c) => {
                 </div>
             </div>
 
-            {/* Step 5: Token Introspection */}
+            {/* Step 5: Local Verification (Optional) */}
             <div className="space-y-3">
                 <h3 className={`text-lg font-semibold ${textPrimary}`}>
-                    5. {t('docs.content.tokenIntrospection')}
+                    5. {t('docs.content.localVerification')} (Optional)
+                </h3>
+                <div className={`${noteBg} border rounded-lg p-4`}>
+                    <p className={`text-sm ${textSecondary}`}>
+                        🔐 Access Tokens are signed with <strong>RS256</strong> (asymmetric).
+                        For high-performance scenarios, you can verify tokens locally using the public key.
+                        <br />
+                        访问令牌使用 <strong>RS256</strong> 非对称签名。高性能场景下可使用公钥本地验证。
+                    </p>
+                </div>
+                <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
+                    <pre className="text-xs text-slate-600 dark:text-slate-400">
+                        {`import { UniAuthServer } from '@55387.ai/uniauth-server';
+
+// Option 1: Remote verification (default, simpler)
+// 方式一：远程验证（默认，更简单）
+const auth = new UniAuthServer({
+    baseUrl: '${API_BASE_URL}',
+    clientId: 'your-client-id',
+    clientSecret: 'your-client-secret',
+});
+
+// Option 2: Local verification with JWKS public key (faster)
+// 方式二：使用 JWKS 公钥本地验证（更快）
+async function initAuthWithLocalVerify() {
+    // Fetch JWKS from SSO
+    const jwksUrl = '${API_BASE_URL}/.well-known/jwks.json';
+    const jwks = await fetch(jwksUrl).then(r => r.json());
+    
+    // Convert JWK to PEM (using jose library)
+    const { importJWK, exportSPKI } = await import('jose');
+    const publicKey = await importJWK(jwks.keys[0], 'RS256');
+    const pem = await exportSPKI(publicKey);
+    
+    return new UniAuthServer({
+        baseUrl: '${API_BASE_URL}',
+        clientId: 'your-client-id',
+        clientSecret: 'your-client-secret',
+        jwtPublicKey: pem, // Enable local RS256 verification
+    });
+}`}
+                    </pre>
+                </div>
+            </div>
+
+            {/* Step 6: Token Introspection */}
+            <div className="space-y-3">
+                <h3 className={`text-lg font-semibold ${textPrimary}`}>
+                    6. {t('docs.content.tokenIntrospection')}
                 </h3>
                 <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
                     <pre className="text-xs text-slate-600 dark:text-slate-400">
@@ -132,10 +180,10 @@ if (result.active) {
                 </div>
             </div>
 
-            {/* Step 6: Error Handling */}
+            {/* Step 7: Error Handling */}
             <div className="space-y-3">
                 <h3 className={`text-lg font-semibold ${textPrimary}`}>
-                    6. {t('docs.content.errorHandling')}
+                    7. {t('docs.content.errorHandling')}
                 </h3>
                 <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
                     <pre className="text-xs text-slate-600 dark:text-slate-400">

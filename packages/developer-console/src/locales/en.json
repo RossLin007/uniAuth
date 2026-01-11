@@ -119,6 +119,7 @@
             "serverVerifyToken": "Verify Access Token",
             "expressMiddleware": "Express Middleware",
             "honoMiddleware": "Hono Middleware",
+            "localVerification": "Local Verification (JWKS)",
             "tokenIntrospection": "Token Introspection (RFC 7662)",
             "errorHandling": "Error Handling",
             "availableMethods": "Available Methods"
