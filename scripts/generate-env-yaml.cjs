@@ -48,6 +48,11 @@ try {
     // Ensure NODE_ENV is production
     envVars['NODE_ENV'] = 'production';
 
+    // Override URLs for production deployment
+    // These must match the actual deployed domain, not localhost
+    envVars['FRONTEND_URL'] = 'https://sso.55387.xyz';
+    envVars['SSO_FRONTEND_URL'] = 'https://auth.55387.xyz';
+
     // Write to env.yaml
     let yamlContent = '';
     for (const [k, v] of Object.entries(envVars)) {

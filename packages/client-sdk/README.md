@@ -34,25 +34,87 @@ if (auth.isAuthenticated()) {
 
 ## SSO 跨域登录
 
+### 配置
+
 ```typescript
-// 配置 SSO
 auth.configureSso({
   ssoUrl: 'https://sso.55387.xyz',
-  clientId: 'my-app',
-  redirectUri: 'https://my-app.com/auth/callback',
+  clientId: 'ua_xxxxxxxxxxxx',
+  redirectUri: window.location.origin + '/callback',
+  scope: 'openid profile email phone',  // 可选，默认 'openid profile email'
 });
+```
 
-// 发起 SSO 登录
+### 触发登录
+
+```typescript
+// 基础用法
 auth.loginWithSSO();
 
-// 在回调页面处理
-if (auth.isSSOCallback()) {
-  const result = await auth.handleSSOCallback();
-  if (result) {
-    navigate('/dashboard');
-  }
+// 使用 PKCE（需要 SSO 服务端支持）
+auth.loginWithSSO({ usePKCE: true });
+```
+
+### 处理回调
+
+在回调页面（如 `/callback`）处理 SSO 响应：
+
+```typescript
+// React 示例
+function Callback() {
+  useEffect(() => {
+    const handleCallback = async () => {
+      if (auth.isSSOCallback()) {
+        try {
+          const result = await auth.handleSSOCallback();
+          if (result) {
+            // 保存 Token
+            localStorage.setItem('access_token', result.access_token);
+            if (result.refresh_token) {
+              localStorage.setItem('refresh_token', result.refresh_token);
+            }
+            window.location.href = '/';
+          }
+        } catch (error) {
+          console.error('SSO callback error:', error);
+        }
+      }
+    };
+    handleCallback();
+  }, []);
+  
+  return <div>登录中...</div>;
 }
 ```
+
+### 返回值
+
+`handleSSOCallback()` 成功时返回：
+
+```typescript
+interface SSOResult {
+  access_token: string;      // 访问令牌
+  refresh_token?: string;    // 刷新令牌（可选）
+  expires_in?: number;       // 过期时间（秒）
+  token_type: string;        // 令牌类型，通常为 "Bearer"
+  id_token?: string;         // OpenID Connect ID Token
+}
+```
+
+### 注意事项
+
+> **重要**：如果应用配置为 **Confidential Client**（机密客户端），前端 SDK 直接调用 Token 端点会因缺少 `client_secret` 而失败。
+>
+> 此时需要使用后端代理登录流程，参考 [SSO 集成指南](https://github.com/55387/uniauth/blob/main/docs/SSO_INTEGRATION_GUIDE.md)。
+
+### SSO API 端点
+
+| 端点 | URL |
+|------|-----|
+| 授权端点 | `https://sso.55387.xyz/api/v1/oauth2/authorize` |
+| Token 端点 | `https://sso.55387.xyz/api/v1/oauth2/token` |
+| 用户信息端点 | `https://sso.55387.xyz/api/v1/oauth2/userinfo` |
+
 
 ## MFA 多因素认证
 

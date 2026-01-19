@@ -63,6 +63,116 @@ app.get('/api/profile', (c) => {
 });
 ```
 
+## SSO OAuth2 后端代理登录
+
+当应用配置为 **Confidential Client**（机密客户端）时，需要通过后端完成 Token 交换。
+
+### 流程概述
+
+```
+用户 → 前端 → /api/auth/login → 后端生成授权 URL → 重定向到 SSO
+                                                    ↓
+用户 ← 前端 ← /                ← 后端设置 Cookie ← SSO 回调到 /api/auth/callback
+                                                    ↑
+                                        后端用 client_secret 交换 Token
+```
+
+### API 端点
+
+| 端点 | URL |
+|------|-----|
+| 授权端点 | `https://sso.55387.xyz/api/v1/oauth2/authorize` |
+| Token 端点 | `https://sso.55387.xyz/api/v1/oauth2/token` |
+| 用户信息端点 | `https://sso.55387.xyz/api/v1/oauth2/userinfo` |
+
+### 实现示例（Hono）
+
+```typescript
+import { Hono } from 'hono';
+import { setCookie, getCookie } from 'hono/cookie';
+
+const app = new Hono();
+
+// 登录端点 - 重定向到 SSO
+app.get('/api/auth/login', (c) => {
+  const origin = c.req.header('origin') || 'http://localhost:3000';
+  const redirectUri = `${origin}/api/auth/callback`;
+  
+  const params = new URLSearchParams({
+    client_id: process.env.UNIAUTH_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid profile email phone',
+    state: generateRandomState(),  // 生成随机 state 防止 CSRF
+  });
+  
+  return c.redirect(`https://sso.55387.xyz/api/v1/oauth2/authorize?${params}`);
+});
+
+// 回调端点 - 交换 Token
+app.get('/api/auth/callback', async (c) => {
+  const code = c.req.query('code');
+  const origin = c.req.header('referer')?.replace(/\/api\/auth\/callback.*$/, '') || 'http://localhost:3000';
+  
+  // 用授权码交换 Token
+  const response = await fetch('https://sso.55387.xyz/api/v1/oauth2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: process.env.UNIAUTH_CLIENT_ID,
+      client_secret: process.env.UNIAUTH_CLIENT_SECRET,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: `${origin}/api/auth/callback`,
+    }),
+  });
+  
+  const { access_token, id_token } = await response.json();
+  
+  // 将 Token 存储到 httpOnly Cookie
+  setCookie(c, 'auth_token', id_token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Lax',
+    maxAge: 60 * 60 * 24 * 7,  // 7 天
+  });
+  
+  return c.redirect('/');
+});
+
+// 检查登录状态
+app.get('/api/auth/status', async (c) => {
+  const token = getCookie(c, 'auth_token');
+  if (!token) {
+    return c.json({ authenticated: false });
+  }
+  
+  // 验证 Token
+  try {
+    const payload = await auth.verifyToken(token);
+    return c.json({ authenticated: true, userId: payload.sub });
+  } catch {
+    return c.json({ authenticated: false });
+  }
+});
+```
+
+### 前端调用
+
+```typescript
+// 触发登录
+const handleLogin = () => {
+  window.location.href = '/api/auth/login';
+};
+
+// 检查登录状态
+const checkAuth = async () => {
+  const response = await fetch('/api/auth/status', { credentials: 'include' });
+  const data = await response.json();
+  return data.authenticated;
+};
+```
+
 ## OAuth2 Token Introspection (RFC 7662)
 
 ```typescript
