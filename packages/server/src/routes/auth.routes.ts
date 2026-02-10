@@ -1057,6 +1057,126 @@ authRouter.post('/refresh', async (c) => {
 });
 
 /**
+ * Verify an access token (for server-sdk / resource servers)
+ * 验证访问令牌（供 server-sdk / 资源服务器使用）
+ *
+ * POST /api/v1/auth/verify
+ *
+ * Authentication: X-App-Key + X-App-Secret headers
+ * Body: { token: string }
+ * Returns: { success: true, data: TokenPayload } or { success: false, error: { code, message } }
+ */
+authRouter.post('/verify', async (c) => {
+    try {
+        // 1. Validate app credentials via headers
+        const appKey = c.req.header('X-App-Key');
+        const appSecret = c.req.header('X-App-Secret');
+
+        if (!appKey || !appSecret) {
+            return c.json(
+                {
+                    success: false,
+                    error: {
+                        code: 'MISSING_CREDENTIALS',
+                        message: 'X-App-Key and X-App-Secret headers are required / 缺少 X-App-Key 和 X-App-Secret 请求头',
+                    },
+                },
+                401
+            );
+        }
+
+        // Validate app credentials against database
+        const { getSupabase } = await import('../lib/supabase.js');
+        const supabase = getSupabase();
+
+        const { data: app, error: appError } = await supabase
+            .from('applications')
+            .select('id, client_id, client_secret, status')
+            .eq('client_id', appKey)
+            .single();
+
+        if (appError || !app || app.client_secret !== appSecret) {
+            return c.json(
+                {
+                    success: false,
+                    error: {
+                        code: 'INVALID_CREDENTIALS',
+                        message: 'Invalid app credentials / 无效的应用凭证',
+                    },
+                },
+                401
+            );
+        }
+
+        if (app.status !== 'active') {
+            return c.json(
+                {
+                    success: false,
+                    error: {
+                        code: 'APP_INACTIVE',
+                        message: 'Application is not active / 应用已停用',
+                    },
+                },
+                403
+            );
+        }
+
+        // 2. Parse and validate request body
+        const body = await c.req.json();
+
+        if (!body.token || typeof body.token !== 'string') {
+            return c.json(
+                {
+                    success: false,
+                    error: {
+                        code: 'MISSING_TOKEN',
+                        message: 'Token is required in request body / 请求体中缺少 token 字段',
+                    },
+                },
+                400
+            );
+        }
+
+        // 3. Verify the access token using JWT library
+        const { verifyAccessToken } = await import('../lib/jwt.js');
+        const payload = await verifyAccessToken(body.token);
+
+        return c.json({
+            success: true,
+            data: {
+                sub: payload.sub,
+                iss: payload.iss,
+                aud: payload.aud,
+                exp: payload.exp,
+                iat: payload.iat,
+                scope: payload.scope,
+                email: payload.email,
+                phone: payload.phone,
+            },
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Token verification failed';
+
+        // Distinguish between expired and invalid tokens
+        const isExpired = message.includes('expired') || message.includes('exp');
+        const code = isExpired ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN';
+
+        return c.json(
+            {
+                success: false,
+                error: {
+                    code,
+                    message: isExpired
+                        ? 'Token has expired / 令牌已过期'
+                        : 'Token is invalid / 令牌无效',
+                },
+            },
+            401
+        );
+    }
+});
+
+/**
  * Logout
  * 登出
  *

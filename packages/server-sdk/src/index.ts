@@ -264,7 +264,31 @@ export class UniAuthServer {
                 throw error;
             }
 
-            // Try local verification as fallback
+            // Fallback 1: Try introspection endpoint (/oauth2/introspect)
+            try {
+                const introspectionResult = await this.introspectToken(token);
+                if (introspectionResult.active) {
+                    const payload: TokenPayload = {
+                        sub: introspectionResult.sub || '',
+                        iss: introspectionResult.iss || '',
+                        aud: introspectionResult.aud || '',
+                        iat: introspectionResult.iat || 0,
+                        exp: introspectionResult.exp || 0,
+                        scope: introspectionResult.scope,
+                        azp: introspectionResult.client_id,
+                    };
+
+                    // Cache the result
+                    const cacheExpiry = Math.min(payload.exp * 1000, Date.now() + 60 * 1000);
+                    this.tokenCache.set(token, { payload, expiresAt: cacheExpiry });
+
+                    return payload;
+                }
+            } catch {
+                // Introspection also failed, continue to local fallback
+            }
+
+            // Fallback 2: Try local verification
             if (this.config.jwtPublicKey) {
                 return this.verifyTokenLocally(token);
             }

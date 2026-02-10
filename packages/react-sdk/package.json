@@ -1,15 +1,14 @@
 {
-    "name": "@55387.ai/uniauth-server",
-    "version": "1.2.2",
-    "description": "UniAuth Server SDK - Token verification for Node.js backends",
+    "name": "@55387.ai/uniauth-react",
+    "version": "1.0.0",
+    "description": "Official React components and hooks for UniAuth integration",
     "type": "module",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
     "files": [
         "dist",
-        "README.md",
-        "INTEGRATION.md"
+        "README.md"
     ],
     "exports": {
         ".": {
@@ -24,25 +23,31 @@
     "scripts": {
         "build": "tsup src/index.ts --format cjs,esm --dts --clean",
         "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "lint": "eslint src --ext .ts",
+        "lint": "eslint src --ext .ts,.tsx",
         "clean": "rm -rf dist"
     },
+    "peerDependencies": {
+        "react": ">=16.8.0",
+        "react-dom": ">=16.8.0"
+    },
     "dependencies": {
-        "jose": "^5.9.6"
+        "@55387.ai/uniauth-client": "workspace:*"
     },
     "devDependencies": {
-        "@types/node": "^22.10.2",
+        "@types/react": "^18.2.0",
+        "@types/react-dom": "^18.2.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
         "tsup": "^8.3.5",
-        "typescript": "^5.7.2",
-        "vitest": "^2.1.8"
+        "typescript": "^5.7.2"
     },
     "keywords": [
         "auth",
         "authentication",
-        "middleware",
-        "jwt",
-        "sdk"
+        "react",
+        "uniauth",
+        "sso",
+        "login",
+        "hooks"
     ]
 }

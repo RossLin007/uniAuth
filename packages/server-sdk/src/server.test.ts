@@ -100,6 +100,97 @@ describe('UniAuthServer', () => {
             // fetch should only be called once due to caching
             expect(fetch).toHaveBeenCalledTimes(1);
         });
+
+        it('should fallback to introspection when /auth/verify returns network error', async () => {
+            const mockIntrospectionResult = {
+                active: true,
+                sub: 'user-456',
+                iss: 'https://auth.example.com',
+                aud: 'test-client',
+                iat: Math.floor(Date.now() / 1000),
+                exp: Math.floor(Date.now() / 1000) + 3600,
+                scope: 'openid profile',
+                client_id: 'test-client',
+            };
+
+            // First call to /auth/verify fails with network error
+            vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
+
+            // Second call to /oauth2/introspect succeeds
+            vi.mocked(fetch).mockResolvedValueOnce({
+                ok: true,
+                json: async () => mockIntrospectionResult,
+            } as Response);
+
+            const server = new UniAuthServer({
+                baseUrl: 'https://auth.example.com',
+                appKey: 'test-key',
+                appSecret: 'test-secret',
+            });
+
+            const result = await server.verifyToken('test-token');
+
+            expect(result.sub).toBe('user-456');
+            expect(result.scope).toBe('openid profile');
+            expect(fetch).toHaveBeenCalledTimes(2);
+        });
+
+        it('should not fallback when /auth/verify returns explicit auth error', async () => {
+            // /auth/verify returns 401 with structured error (ServerAuthError)
+            vi.mocked(fetch).mockResolvedValueOnce({
+                ok: false,
+                json: async () => ({
+                    success: false,
+                    error: { code: 'TOKEN_EXPIRED', message: 'Token has expired' },
+                }),
+            } as Response);
+
+            const server = new UniAuthServer({
+                baseUrl: 'https://auth.example.com',
+                appKey: 'test-key',
+                appSecret: 'test-secret',
+            });
+
+            // Should throw directly, no fallback for explicit auth errors
+            await expect(server.verifyToken('expired-token')).rejects.toThrow('Token has expired');
+
+            // Should only call /auth/verify, not introspect
+            expect(fetch).toHaveBeenCalledTimes(1);
+        });
+
+        it('should send correct headers to /auth/verify', async () => {
+            const mockPayload = {
+                sub: 'user-789',
+                iat: Math.floor(Date.now() / 1000),
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            };
+
+            vi.mocked(fetch).mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ success: true, data: mockPayload }),
+            } as Response);
+
+            const server = new UniAuthServer({
+                baseUrl: 'https://auth.example.com',
+                appKey: 'my-app-key',
+                appSecret: 'my-app-secret',
+            });
+
+            await server.verifyToken('some-token');
+
+            expect(fetch).toHaveBeenCalledWith(
+                'https://auth.example.com/api/v1/auth/verify',
+                expect.objectContaining({
+                    method: 'POST',
+                    headers: expect.objectContaining({
+                        'X-App-Key': 'my-app-key',
+                        'X-App-Secret': 'my-app-secret',
+                        'Content-Type': 'application/json',
+                    }),
+                    body: JSON.stringify({ token: 'some-token' }),
+                })
+            );
+        });
     });
 
     describe('getUser', () => {

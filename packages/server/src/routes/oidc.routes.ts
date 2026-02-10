@@ -35,7 +35,7 @@ oidcRouter.get('/.well-known/openid-configuration', (c) => {
 
     return c.json({
         issuer,
-        authorization_endpoint: `${issuer}/oauth2/authorize`,
+        authorization_endpoint: `${apiBase}/oauth2/authorize`,
         token_endpoint: `${apiBase}/oauth2/token`,
         userinfo_endpoint: `${apiBase}/oauth2/userinfo`,
         jwks_uri: `${issuer}/.well-known/jwks.json`, // JWKS endpoint

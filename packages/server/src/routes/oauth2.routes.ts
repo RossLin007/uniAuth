@@ -370,7 +370,8 @@ oauth2Router.post(
 
             return c.json({
                 error: errorMessage,
-                error_description: getErrorDescription(errorMessage)
+                error_description: getErrorDescription(errorMessage),
+                error_hint: getErrorHint(errorMessage, data.grant_type),
             }, 400);
         }
     }
@@ -466,16 +467,32 @@ oauth2Router.post(
 
 function getErrorDescription(errorCode: string): string {
     const descriptions: Record<string, string> = {
-        'invalid_client': 'Client authentication failed / 客户端认证失败',
+        'invalid_client': 'Client authentication failed. Check client_id and client_secret / 客户端认证失败，请检查 client_id 和 client_secret',
         'invalid_grant': 'Authorization code is invalid, expired, or has been used / 授权码无效、已过期或已被使用',
         'invalid_request': 'The request is missing a required parameter / 请求缺少必需的参数',
-        'unauthorized_client': 'The client is not authorized / 客户端未获授权',
+        'unauthorized_client': 'The client is not authorized for this grant type / 客户端未获授权使用此授权类型',
         'access_denied': 'Access denied / 访问被拒绝',
         'user_not_found': 'User not found / 用户不存在',
         'invalid_scope': 'The requested scope is invalid / 请求的权限范围无效',
+        'redirect_uri_mismatch': 'Redirect URI does not match registered value / 回调地址与注册值不匹配',
+        'unsupported_grant_type': 'The grant type is not supported / 不支持的授权类型',
     };
 
     return descriptions[errorCode] || 'An error occurred / 发生错误';
+}
+
+function getErrorHint(errorCode: string, grantType?: string): string {
+    const hints: Record<string, string> = {
+        'invalid_client': 'Verify: (1) client_id matches Developer Console, (2) client_secret is correct, (3) for WEB (Confidential) apps, exchange tokens from your backend, not the browser',
+        'invalid_grant': 'Authorization codes expire after 10 minutes and are single-use. Request a new code if this one has expired',
+        'invalid_request': 'Ensure all required fields are present: grant_type, client_id, code, redirect_uri',
+        'unauthorized_client': `This client is not authorized to use grant_type="${grantType || 'unknown'}". Check your app type in the Developer Console`,
+        'access_denied': 'The user or server denied the request. Check CORS_ORIGINS on your UniAuth server if calling from a browser',
+        'redirect_uri_mismatch': 'redirect_uri must EXACTLY match the registered URI (protocol + domain + port + path). Check the Developer Console',
+        'unsupported_grant_type': 'Supported grant types: authorization_code, client_credentials. Check your grant_type parameter',
+    };
+
+    return hints[errorCode] || 'Check the API documentation at https://sso.55387.xyz/docs';
 }
 
 export { oauth2Router };

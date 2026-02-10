@@ -1126,6 +1126,7 @@ export class UniAuthClient {
 
         // Get user info
         const user = await this.getCurrentUser();
+        this.notifyAuthStateChange(user);
 
         // Clean up URL (remove code and state from URL)
         if (typeof window !== 'undefined' && window.history) {
