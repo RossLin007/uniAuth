@@ -1,6 +1,6 @@
 {
     "name": "@55387.ai/uniauth-react",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Official React components and hooks for UniAuth integration",
     "type": "module",
     "main": "./dist/index.js",
