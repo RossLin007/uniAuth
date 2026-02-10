@@ -1,13 +1,12 @@
-# UniAuth 统一身份认证平台
+# UniAuth — Unified Authentication Platform
 
 <p align="center">
   <strong>🔐 Unified Authentication Platform / 统一身份认证平台</strong>
 </p>
 
 <p align="center">
-  为多个应用服务提供统一的用户认证与授权。
-  <br/>
-  Provides centralized user authentication and authorization for multiple application services.
+  Centralized user authentication & authorization for multiple apps.<br/>
+  为多个应用提供统一的用户认证与授权服务。
 </p>
 
 ---
@@ -16,13 +15,16 @@
 
 | Feature | Description |
 |---------|-------------|
-| 📱 **Phone Login** | 手机号 + 验证码登录 (腾讯云短信) |
-| 🔑 **JWT Tokens** | Access Token + Refresh Token 双令牌机制 |
-| 🔄 **Token Rotation** | 自动刷新与轮换令牌，增强安全性 |
-| 🔌 **SDK Support** | 提供前端 SDK 与后端 SDK |
-| 🌐 **Multi-language** | 中英文双语支持 |
-| 📱 **Responsive** | PC / Mobile / Tablet 全端适配 |
-| 🛡️ **Security** | Rate Limiting, IP Blocking, Audit Logging |
+| 📱 **Phone Login** | SMS code login (Tencent Cloud SMS) / 手机验证码登录 |
+| 📧 **Email Login** | Password + Passwordless code login / 密码 + 验证码登录 |
+| 🌐 **Social Login** | Google, GitHub, WeChat OAuth / 第三方 OAuth 登录 |
+| 🔐 **SSO** | Single Sign-On via OAuth2/OIDC / 单点登录 |
+| 🔑 **MFA** | Multi-factor authentication / 多因素认证 |
+| 🪙 **JWT + Refresh** | Access Token + Refresh Token rotation / 双令牌轮换 |
+| 📦 **SDK** | Client SDK + Server SDK + React SDK |
+| 🌍 **Bilingual** | Chinese + English / 中英双语 |
+| 📱 **Responsive** | PC / Mobile / Tablet / 全端适配 |
+| 🛡️ **Security** | Rate limiting, IP blocking, audit logging |
 
 ---
 
@@ -32,173 +34,78 @@
 
 - Node.js 20+
 - pnpm 8+
-- Supabase 账户
-- 腾讯云短信服务
+- Supabase account
+- Tencent Cloud SMS (for phone login)
 
-### Installation / 安装
+### Install & Run / 安装与运行
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/uniauth.git
-cd uniauth
-
-# Install dependencies
+git clone https://github.com/RossLin007/uniAuth.git
+cd uniAuth
 pnpm install
-
-# Copy environment variables
 cp .env.example .env
+# Edit .env with your configuration / 编辑 .env
 
-# Edit .env with your configuration
-```
-
-### Configuration / 配置
-
-编辑 `.env` 文件，填入以下配置：
-
-```env
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-
-# JWT
-JWT_SECRET=your_secret_key_at_least_32_chars
-
-# Tencent SMS
-TENCENT_SECRET_ID=your_secret_id
-TENCENT_SECRET_KEY=your_secret_key
-TENCENT_SMS_SDK_APP_ID=your_app_id
-TENCENT_SMS_SIGN_NAME=your_sign_name
-TENCENT_SMS_TEMPLATE_ID=your_template_id
-```
-
-### Database Setup / 数据库设置
-
-在 Supabase SQL Editor 中运行迁移脚本：
-
-```bash
-cat packages/server/migrations/001_initial_schema.sql
-```
-
-### Run / 运行
-
-#### 启动所有服务 (推荐)
-
-```bash
-# 一键启动所有开发服务
+# Start all services / 一键启动
 npm run dev:all
-
-# 停止所有服务
-npm run stop:all
 ```
 
-#### 服务地址
+### Service Ports / 服务端口
 
-| 服务 | 端口 | 地址 | 描述 |
-|------|------|------|------|
-| 🔧 **API Server** | 3000 | http://localhost:3000 | 后端 API 服务 |
-| 🌐 **Web Frontend** | 5173 | http://localhost:5173 | 用户登录页面 |
-| 👨‍💻 **Developer Console** | 5174 | http://localhost:5174 | 开发者控制台 |
-| 📚 **API Docs** | 3000 | http://localhost:3000/docs | Swagger 文档 |
-
-#### 单独启动服务
-
-```bash
-# 只启动 API 服务
-npm run dev
-
-# 只启动 Web 前端
-npm run dev:web
-
-# 只启动开发者控制台
-npm run dev:console
-```
-
-#### 生产构建
-
-```bash
-# 构建所有包
-pnpm build
-
-# 启动生产服务
-pnpm start
-```
-
----
-
-## 🔍 Error Tracking / 错误追踪
-
-UniAuth 支持 [Sentry](https://sentry.io) 进行生产环境错误追踪。
-
-### Configuration / 配置
-
-1. 在 [Sentry.io](https://sentry.io) 创建一个项目
-2. 获取 DSN (Data Source Name)
-3. 在 `.env` 文件中配置：
-
-```env
-# Sentry Error Tracking (recommended for production)
-SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
-```
-
-服务器启动时会自动初始化 Sentry。启动日志中会显示：
-```
-Sentry error tracking initialized
-```
-
-### Features / 功能
-
-- 自动捕获未处理的异常
-- 包含请求上下文信息（URL, method, headers）
-- 支持环境区分（development/production）
+| Service | Port | URL | Description |
+|---------|------|-----|-------------|
+| 🔧 API Server | 3000 | http://localhost:3000 | Backend API / 后端 API |
+| 🌐 Web Frontend | 5173 | http://localhost:5173 | Login page / 登录页 |
+| 👨‍💻 Developer Console | 5174 | http://localhost:5174 | App management / 应用管理 |
+| 📚 API Docs | 3000 | http://localhost:3000/docs | Swagger / 接口文档 |
 
 ---
 
 ## 📦 Packages / 包结构
 
-| Package | Description |
-|---------|-------------|
-| `@uniauth/server` | API 服务端 (内部) |
-| `@55387.ai/uniauth-client` | 前端 SDK ([npm](https://www.npmjs.com/package/@55387.ai/uniauth-client)) |
-| `@55387.ai/uniauth-server` | 后端 SDK ([npm](https://www.npmjs.com/package/@55387.ai/uniauth-server)) |
+| Package | Version | Description |
+|---------|---------|-------------|
+| `@55387.ai/uniauth-client` | 1.2.2 | Frontend SDK ([npm](https://www.npmjs.com/package/@55387.ai/uniauth-client)) |
+| `@55387.ai/uniauth-server` | 1.2.2 | Backend SDK ([npm](https://www.npmjs.com/package/@55387.ai/uniauth-server)) |
+| `@55387.ai/uniauth-react` | 0.1.0 | React hooks & components |
+| `@uniauth/server` | — | API Server (internal) |
+| `@uniauth/web` | — | Login frontend (internal) |
+| `@uniauth/developer-console` | — | Developer console (internal) |
 
 ---
 
 ## 📖 SDK Usage / SDK 使用
 
-### Frontend SDK / 前端 SDK
+### Frontend / 前端
 
 ```typescript
 import { UniAuthClient } from '@55387.ai/uniauth-client';
 
-const auth = new UniAuthClient({
-  baseUrl: 'https://sso.55387.xyz',
-});
+const auth = new UniAuthClient({ baseUrl: 'https://sso.55387.xyz' });
 
-// 发送验证码
+// 📱 Phone login / 手机登录
 await auth.sendCode('+8613800138000');
-
-// 验证码登录
 const result = await auth.loginWithCode('+8613800138000', '123456');
-console.log('User:', result.user);
 
-// 获取当前用户
+// 📧 Email login / 邮箱登录
+const result = await auth.loginWithEmail('user@example.com', 'password');
+
+// 🌐 Social login / 社交登录
+auth.startSocialLogin('google');
+
+// 🔐 SSO login / 单点登录
+auth.configureSso({ ssoUrl: '...', clientId: '...', redirectUri: '...' });
+auth.loginWithSSO();
+
+// 👤 User / 用户
 const user = await auth.getCurrentUser();
-
-// 检查登录状态
-if (auth.isAuthenticated()) {
-  console.log('User is logged in');
-}
-
-// 登出
 await auth.logout();
 ```
 
-### Backend SDK / 后端 SDK
+### Backend / 后端
 
 ```typescript
 import { UniAuthServer } from '@55387.ai/uniauth-server';
-import express from 'express';
 
 const auth = new UniAuthServer({
   baseUrl: 'https://sso.55387.xyz',
@@ -206,75 +113,97 @@ const auth = new UniAuthServer({
   clientSecret: 'your-client-secret',
 });
 
-const app = express();
+// Protect routes / 保护路由
+app.use('/api/*', auth.middleware());          // Express
+app.use('/api/*', auth.honoMiddleware());      // Hono
 
-// 使用中间件保护路由
-app.use('/api/*', auth.middleware());
-
-// 访问用户信息
-app.get('/api/profile', (req, res) => {
-  res.json({
-    user: req.user,
-    payload: req.authPayload,
-  });
-});
-
-// 手动验证令牌
-app.get('/verify', async (req, res) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  const payload = await auth.verifyToken(token);
-  res.json({ payload });
-});
+// Verify token / 验证令牌
+const payload = await auth.verifyToken(token);
 ```
 
 ---
 
 ## 🔗 API Endpoints / API 接口
 
-### Authentication / 认证
+### Auth / 认证
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/v1/auth/phone/send-code` | ❌ | Send SMS code / 发送短信验证码 |
+| POST | `/api/v1/auth/phone/verify` | ❌ | Phone code login / 手机验证码登录 |
+| POST | `/api/v1/auth/email/register` | ❌ | Email register / 邮箱注册 |
+| POST | `/api/v1/auth/email/login` | ❌ | Email login / 邮箱密码登录 |
+| POST | `/api/v1/auth/email/send-code` | ❌ | Send email code / 发送邮箱验证码 |
+| POST | `/api/v1/auth/email/verify` | ❌ | Email code login / 邮箱验证码登录 |
+| GET | `/api/v1/auth/oauth/providers` | ❌ | List OAuth providers / OAuth 提供商 |
+| GET | `/api/v1/auth/oauth/:provider/authorize` | ❌ | Social login redirect / 社交登录跳转 |
+| POST | `/api/v1/auth/mfa/verify-login` | ❌ | MFA verification / MFA 验证 |
+| POST | `/api/v1/auth/refresh` | ❌ | Refresh token / 刷新令牌 |
+| POST | `/api/v1/auth/verify` | 🔑 | Verify token / 验证令牌 |
+| POST | `/api/v1/auth/logout` | 🔒 | Logout / 登出 |
+| POST | `/api/v1/auth/logout-all` | 🔒 | Logout all / 全设备登出 |
+
+### OAuth2
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/auth/send-code` | 发送验证码 |
-| POST | `/api/v1/auth/verify-code` | 验证码登录 |
-| POST | `/api/v1/auth/refresh` | 刷新令牌 |
-| POST | `/api/v1/auth/logout` | 登出 |
-| POST | `/api/v1/auth/logout-all` | 登出所有设备 |
+| GET | `/api/v1/oauth2/authorize` | Authorization / 授权 |
+| POST | `/api/v1/oauth2/token` | Token exchange / 令牌交换 |
+| POST | `/api/v1/oauth2/introspect` | Token introspection / 令牌内省 |
+
+### OIDC
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/.well-known/openid-configuration` | Discovery / 发现文档 |
+| GET | `/.well-known/jwks.json` | JWKS / 公钥集 |
+| GET | `/api/v1/oauth2/userinfo` | UserInfo / 用户信息 |
 
 ### User / 用户
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/user/me` | 获取当前用户 |
-| PATCH | `/api/v1/user/me` | 更新用户信息 |
-| GET | `/api/v1/user/sessions` | 获取活跃会话 |
-| DELETE | `/api/v1/user/sessions/:id` | 撤销会话 |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/user/me` | 🔒 | Get user / 获取用户 |
+| PATCH | `/api/v1/user/me` | 🔒 | Update profile / 更新资料 |
+| GET | `/api/v1/user/sessions` | 🔒 | List sessions / 活跃会话 |
+| DELETE | `/api/v1/user/sessions/:id` | 🔒 | Revoke session / 撤销会话 |
+
+> ❌ = No auth &nbsp; 🔒 = Bearer token &nbsp; 🔑 = App Key/Secret
+
+---
+
+## 📚 Documentation / 文档
+
+| Document | Description |
+|----------|-------------|
+| [AI Integration Guide](./docs/AI_INTEGRATION_GUIDE.md) | 🤖 Complete integration guide for AI agents / AI 集成指南 |
+| [API Reference](./docs/API_REFERENCE.md) | 📋 Full REST API reference / 完整 API 参考 |
+| [Changelog](./docs/CHANGELOG.md) | 📝 Version history / 版本记录 |
 
 ---
 
 ## 🧪 Testing / 测试
 
 ```bash
-# Run all tests
-pnpm test
-
-# Run tests with coverage
-pnpm test:coverage
-
-# Run tests in watch mode
-pnpm test:watch
+pnpm test              # Run all tests
+pnpm test:coverage     # With coverage
+pnpm test:watch        # Watch mode
 ```
 
 ---
 
-## 📄 License / 许可证
+## 🐳 Deployment / 部署
 
-MIT License
+```bash
+# Docker
+docker build -t uniauth .
+docker compose up -d
+```
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for full deployment guide.
 
 ---
 
-## 🤝 Contributing / 贡献
+## 📄 License
 
-欢迎贡献代码！请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解更多信息。
-
-Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for more details.
+MIT

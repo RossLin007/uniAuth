@@ -34,10 +34,9 @@ export default function QuickStartDoc() {
                 </h3>
                 <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
                     <pre className="text-xs text-slate-600 dark:text-slate-400">
-                        {`import { UniAuth } from '@55387.ai/uniauth-client';
+                        {`import { UniAuthClient } from '@55387.ai/uniauth-client';
 
-const auth = new UniAuth({
-    clientId: 'your-client-id',
+const auth = new UniAuthClient({
     baseUrl: '${API_BASE_URL}'
 });`}
                     </pre>
@@ -51,16 +50,16 @@ const auth = new UniAuth({
                 </h3>
                 <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
                     <pre className="text-xs text-slate-600 dark:text-slate-400">
-                        {`// Send phone verification code
-await auth.sendPhoneCode('+8613800138000');
+                        {`// Send phone verification code / 发送手机验证码
+await auth.sendCode('+8613800138000');
 
-// Login with phone code
-const result = await auth.loginWithPhoneCode(
+// Login with phone code / 手机验证码登录
+const result = await auth.loginWithCode(
     '+8613800138000', 
     '123456'
 );
 
-console.log(result.accessToken);`}
+console.log(result.access_token);`}
                     </pre>
                 </div>
             </div>
@@ -72,13 +71,17 @@ console.log(result.accessToken);`}
                 </h3>
                 <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
                     <pre className="text-xs text-slate-600 dark:text-slate-400">
-                        {`// Send email verification code
+                        {`// Option A: Email code login / 邮箱验证码登录
 await auth.sendEmailCode('user@example.com');
-
-// Login with email code
 const result = await auth.loginWithEmailCode(
     'user@example.com', 
     '123456'
+);
+
+// Option B: Email password login / 邮箱密码登录
+const result2 = await auth.loginWithEmail(
+    'user@example.com',
+    'your-password'
 );`}
                     </pre>
                 </div>

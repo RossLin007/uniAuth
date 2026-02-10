@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/contexts/ToastContext';
+import { API_BASE_URL } from '@/config/api';
 
 interface IntegrationGuideProps {
     clientId: string;
@@ -16,7 +17,7 @@ export function IntegrationGuide({ clientId, clientSecret, appType }: Integratio
     const [copied, setCopied] = useState<string | null>(null);
     const [expanded, setExpanded] = useState(true);
 
-    const apiBaseUrl = 'https://your-uniauth-server.com'; // TODO: Use env
+    const apiBaseUrl = API_BASE_URL;
 
     const copyToClipboard = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
@@ -49,52 +50,51 @@ pnpm add @55387.ai/uniauth-client`;
     // Frontend Quick Start
     const frontendCode = `import { UniAuthClient } from '@55387.ai/uniauth-client';
 
-// 初始化客户端 (前端)
-const uniauth = new UniAuthClient({
-    apiUrl: '${apiBaseUrl}',
-    clientId: '${clientId}',
+// Initialize client / 初始化客户端
+const auth = new UniAuthClient({
+    baseUrl: '${apiBaseUrl}',
 });
 
-// ========== 手机号登录 ==========
-// 1. 发送验证码
-await uniauth.sendPhoneCode('+8613800138000', 'login');
+// ========== 📱 Phone Login / 手机号登录 ==========
+await auth.sendCode('+8613800138000');
+const result = await auth.loginWithCode('+8613800138000', '123456');
+console.log('Token:', result.access_token);
 
-// 2. 验证登录
-const result = await uniauth.loginWithPhone('+8613800138000', '123456');
-if (result.success) {
-    console.log('登录成功:', result.data.access_token);
-}
+// ========== 📧 Email Login / 邮箱登录 ==========
+// Option A: Code login / 验证码登录
+await auth.sendEmailCode('user@example.com');
+const r1 = await auth.loginWithEmailCode('user@example.com', '123456');
 
-// ========== 邮箱登录 ==========
-await uniauth.sendEmailCode('user@example.com', 'login');
-const emailResult = await uniauth.loginWithEmailCode('user@example.com', '123456');
+// Option B: Password login / 密码登录
+const r2 = await auth.loginWithEmail('user@example.com', 'password');
 
-// ========== OAuth 跳转登录 ==========
-const authUrl = uniauth.getAuthorizeUrl(
-    'https://your-app.com/callback',
-    'openid profile email'
-);
-window.location.href = authUrl;`;
+// ========== 🌐 Social Login / 社交登录 ==========
+auth.startSocialLogin('google');
+// Also: 'github', 'wechat'
 
-    // Backend M2M Code
-    const backendCode = `import { UniAuthClient } from '@55387.ai/uniauth-client';
+// ========== 🔐 SSO Login / 单点登录 ==========
+auth.configureSso({ ssoUrl: '${apiBaseUrl}', clientId: '${clientId}', redirectUri: location.origin + '/callback' });
+auth.loginWithSSO();`;
 
-// 初始化客户端 (后端 M2M)
-const uniauth = new UniAuthClient({
-    apiUrl: '${apiBaseUrl}',
+    // Backend Verification Code
+    const backendCode = `import { UniAuthServer } from '@55387.ai/uniauth-server';
+
+// Initialize server SDK / 初始化后端 SDK
+const auth = new UniAuthServer({
+    baseUrl: '${apiBaseUrl}',
     clientId: '${clientId}',
-    clientSecret: '${clientSecret}', // ⚠️ 仅后端使用
+    clientSecret: '${clientSecret}', // ⚠️ Backend only / 仅后端使用
 });
 
-// ========== M2M 认证 (服务间调用) ==========
-const tokenResult = await uniauth.loginWithClientCredentials(['read:users', 'write:data']);
-console.log('M2M Token:', tokenResult.access_token);
+// ========== Verify Token / 验证令牌 ==========
+const payload = await auth.verifyToken(accessToken);
+console.log('User ID:', payload.sub);
 
-// ========== Token 验证 ==========
-const introspection = await uniauth.introspectToken(someAccessToken);
-if (introspection.active) {
-    console.log('Token 有效, 用户ID:', introspection.sub);
-}`;
+// ========== Express Middleware / Express 中间件 ==========
+app.use('/api/*', auth.middleware());
+
+// ========== Hono Middleware ==========
+app.use('/api/*', auth.honoMiddleware());`;
 
     // OAuth Callback Handler
     const callbackCode = `// OAuth2 回调处理 (后端路由)

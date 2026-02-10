@@ -193,21 +193,21 @@ export default function DocsPage() {
                     <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
                         <p className={`text-sm font-medium mb-2 ${textPrimary}`}>{t('docs.basicUsage')}</p>
                         <pre className="text-xs text-slate-600 dark:text-slate-400 overflow-x-auto">
-                            {`import { UniAuth } from '@55387.ai/uniauth-client';
+                            {`import { UniAuthClient } from '@55387.ai/uniauth-client';
 
-const auth = new UniAuth({
-    clientId: 'your-client-id',
+const auth = new UniAuthClient({
     baseUrl: '${baseUrl}'
 });
 
-// Send phone verification code
-await auth.sendPhoneCode('+8613800138000');
+// 📱 Phone login / 手机登录
+await auth.sendCode('+8613800138000');
+const result = await auth.loginWithCode('+8613800138000', '123456');
 
-// Login with phone code
-const result = await auth.loginWithPhoneCode(
-    '+8613800138000', 
-    '123456'
-);`}
+// 📧 Email login / 邮箱登录
+const result2 = await auth.loginWithEmail('user@example.com', 'password');
+
+// 🌐 Social login / 社交登录
+auth.startSocialLogin('google');`}
                         </pre>
                     </div>
                 </CardContent>

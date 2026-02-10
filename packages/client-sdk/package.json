@@ -8,8 +8,7 @@
     "types": "./dist/index.d.ts",
     "files": [
         "dist",
-        "README.md",
-        "INTEGRATION.md"
+        "README.md"
     ],
     "exports": {
         ".": {

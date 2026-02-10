@@ -1,27 +1,24 @@
 # @55387.ai/uniauth-react
 
-Official React SDK for UniAuth integration. Provides easy-to-use hooks and context for managing authentication state and SSO flows.
+Official React SDK for UniAuth SSO integration.
+UniAuth 官方 React SDK，用于 SSO 集成。
 
-## Features
+## Features / 功能
 
-- 🔐 **Automated SSO**: Handles authorization code exchange and PKCE flow automatically.
-- 🔄 **State Management**: Reactive user state (`user`, `isAuthenticated`, `isLoading`).
-- 🛡️ **Type-Safe**: Full TypeScript support.
-- 🍪 **Token Management**: Automatic token storage and refresh.
+- 🔐 **SSO Integration / SSO 集成**: PKCE authorization code flow with auto-callback handling / 自动处理 PKCE 授权码流程
+- 🔄 **Reactive State / 响应式状态**: `user`, `isAuthenticated`, `isLoading` hooks
+- 🛡️ **TypeScript**: Full type-safe API / 完整类型安全
+- 🍪 **Token Management / Token 管理**: Auto token storage & refresh / 自动存储与刷新
 
-## Installation
+## Installation / 安装
 
 ```bash
 npm install @55387.ai/uniauth-react @55387.ai/uniauth-client
 ```
 
-> **Note**: If you are using this in a monorepo or cannot access the private registry, you can copy the source code from `src/` directly into your project.
+## Quick Start / 快速开始
 
-## Quick Start
-
-### 1. Configure the Provider
-
-Wrap your application root with `UniAuthProvider`.
+### 1. Configure Provider / 配置 Provider
 
 ```tsx
 // src/main.tsx
@@ -31,57 +28,37 @@ import { UniAuthProvider, type UniAuthProviderConfig } from '@55387.ai/uniauth-r
 import App from './App';
 
 const config: UniAuthProviderConfig = {
-  // 1. Basic Config
   baseUrl: import.meta.env.VITE_UNIAUTH_BASE_URL || 'https://sso.55387.xyz',
   clientId: import.meta.env.VITE_UNIAUTH_CLIENT_ID,
-  
-  // 2. Redirect URI (Must match Console EXACTLY)
   redirectUri: window.location.origin + '/callback',
-  
-  // 3. SSO Specifics
   sso: {
-    // URL of the SSO Authorize Endpoint
     ssoUrl: 'https://sso.55387.xyz',
-    // Always use PKCE for public clients (SPA)
-    usePKCE: true,
+    usePKCE: true,     // Recommended for SPA / 推荐用于单页应用
   }
 };
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <UniAuthProvider 
-      config={config}
-      // Optional: Custom loading component
-      loadingComponent={<div className="loading">Initializing Auth...</div>}
-    >
+    <UniAuthProvider config={config} loadingComponent={<div>Loading...</div>}>
       <App />
     </UniAuthProvider>
   </React.StrictMode>
 );
 ```
 
-### 2. Use the Hook
-
-Access authentication state in any component.
+### 2. Use the Hook / 使用 Hook
 
 ```tsx
-// src/components/LoginButton.tsx
 import { useUniAuth } from '@55387.ai/uniauth-react';
 
 export const LoginButton = () => {
-  const { 
-    user, 
-    isAuthenticated, 
-    isLoading, 
-    login, 
-    logout 
-  } = useUniAuth();
+  const { user, isAuthenticated, isLoading, login, logout } = useUniAuth();
 
   if (isLoading) return <div>Checking session...</div>;
 
   if (isAuthenticated && user) {
     return (
-      <div className="user-profile">
+      <div>
         <img src={user.avatar_url} alt={user.nickname} />
         <span>Welcome, {user.nickname}!</span>
         <button onClick={() => logout()}>Logout</button>
@@ -89,19 +66,42 @@ export const LoginButton = () => {
     );
   }
 
-  return (
-    <button onClick={() => login()}>
-      Login with SSO
-    </button>
-  );
+  return <button onClick={() => login()}>Login with SSO</button>;
 };
 ```
 
-## Advanced Usage
+## API Reference
 
-### Getting Access Token
+### `useUniAuth()` Hook
 
-You can retrieve the valid access token for API requests.
+Returns `UniAuthContextType`:
+
+| Property / 属性 | Type / 类型 | Description / 描述 |
+|---|---|---|
+| `user` | `UserInfo \| null` | Current user info / 当前用户信息 |
+| `isAuthenticated` | `boolean` | Auth status / 认证状态 |
+| `isLoading` | `boolean` | Loading state / 加载状态 |
+| `error` | `Error \| null` | Error state / 错误状态 |
+| `login(options?)` | `(opts?) => void` | Start SSO login / 发起 SSO 登录 |
+| `logout()` | `() => Promise<void>` | Logout / 退出登录 |
+| `updateProfile(updates)` | `(updates) => Promise<void>` | Update profile (nickname, avatar) / 更新资料 |
+| `client` | `UniAuthClient` | Raw client instance / 原始客户端实例 |
+| `getToken()` | `() => string \| null` | Get access token synchronously / 同步获取 Token |
+
+### `login()` Options
+
+```ts
+login({ usePKCE: true, usePopup: false });
+```
+
+| Option | Default | Description / 描述 |
+|---|---|---|
+| `usePKCE` | `true` | Use PKCE flow (recommended for SPA) / 使用 PKCE 流程 |
+| `usePopup` | `false` | Open login in popup / 弹窗登录 |
+
+## Advanced Usage / 高级用法
+
+### Getting Access Token / 获取 Access Token
 
 ```ts
 const { getToken } = useUniAuth();
@@ -111,30 +111,47 @@ const callApi = async () => {
   if (!token) return;
 
   const res = await fetch('/api/protected', {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: { Authorization: `Bearer ${token}` }
   });
 };
 ```
 
-### Handling Nginx/CORS Issues
+### Update User Profile / 更新用户资料
 
-If you encounter CORS errors during token exchange:
+```ts
+const { updateProfile } = useUniAuth();
 
-1.  **Server-Side Fix (Recommended)**: Add your domain to `CORS_ORIGINS` on the SSO Server.
-2.  **Proxy Fix**: Configure Nginx proxy to forward `/api/uni-auth/` -> SSO Server, and update `baseUrl` in config to point to the proxy.
+await updateProfile({ nickname: 'New Name' });
+```
 
-## Troubleshooting
+### Access Raw Client / 访问原始客户端
+
+```ts
+const { client } = useUniAuth();
+
+// Use any UniAuthClient method directly
+// 直接使用 UniAuthClient 的任何方法
+await client.sendCode('+8613800138000');
+const result = await client.loginWithCode('+8613800138000', '123456');
+```
+
+## Environment Variables / 环境变量
+
+```bash
+VITE_UNIAUTH_BASE_URL=https://sso.55387.xyz
+VITE_UNIAUTH_CLIENT_ID=your-client-id
+```
+
+## Troubleshooting / 故障排查
 
 ### `invalid_client` Error
-- Check `clientId` matches Console exactly (no trailing spaces).
-- Check `redirectUri` matches Console exactly (http vs https, trailing slash).
-- Ensure you used `sso.55387.xyz` (Production) or your own dev server correctly.
+- Check `clientId` matches Console exactly / 检查 clientId 是否与控制台完全一致
+- Check `redirectUri` matches Console exactly / 检查 redirectUri 是否与控制台完全一致
 
-### 404 on Callback
-- Ensure your SPA router (React Router) handles the `/callback` route.
-- Ensure your Nginx config directs all routes to `index.html` (`try_files $uri /index.html`).
+### 404 on Callback / 回调 404
+- Ensure React Router handles `/callback` route / 确保路由处理了 `/callback` 路径
+- Configure Nginx: `try_files $uri /index.html`
 
-### 401 Unauthorized
-- Check if you are sending the `Authorization: Bearer <token>` header in your API calls.
+### CORS Errors / 跨域错误
+- Add your domain to `CORS_ORIGINS` on SSO Server / 在 SSO 服务器添加域名到 CORS_ORIGINS
+- Or configure Nginx proxy: `/api/uni-auth/` → SSO Server / 或配置 Nginx 代理

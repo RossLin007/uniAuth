@@ -222,26 +222,27 @@ try {
                     <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
                         <pre className="text-xs text-slate-600 dark:text-slate-400">
                             {`// src/lib/auth.ts
-import { UniAuth } from '@55387.ai/uniauth-client';
+import { UniAuthClient } from '@55387.ai/uniauth-client';
 
-export const auth = new UniAuth({
-    clientId: 'morning-reader-client',
+export const auth = new UniAuthClient({
     baseUrl: '${API_BASE_URL}'
 });
 
 // src/components/Login.tsx
 const handleLogin = async () => {
-    await auth.sendPhoneCode('+8613800138000');
-    const result = await auth.loginWithPhoneCode(phone, code);
+    // Phone login / 手机登录
+    await auth.sendCode('+8613800138000');
+    const result = await auth.loginWithCode(phone, code);
     
-    // Store token for API calls
-    localStorage.setItem('accessToken', result.accessToken);
+    // Token is auto-stored by SDK
+    // 令牌由 SDK 自动存储
+    console.log('User:', result.user.nickname);
 };
 
 // src/api/client.ts
 export const apiClient = {
     async fetchProfile() {
-        const token = localStorage.getItem('accessToken');
+        const token = auth.getAccessToken();
         return fetch('/api/profile', {
             headers: {
                 'Authorization': \`Bearer \${token}\`
