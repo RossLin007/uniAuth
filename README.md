@@ -176,7 +176,7 @@ const payload = await auth.verifyToken(token);
 
 | Document | Description |
 |----------|-------------|
-| [AI Integration Guide](./docs/AI_INTEGRATION_GUIDE.md) | 🤖 Complete integration guide for AI agents / AI 集成指南 |
+| [Integration Guide](./docs/INTEGRATION_GUIDE.md) | 🚀 Complete project integration guide / 项目接入指南（推荐首读） |
 | [API Reference](./docs/API_REFERENCE.md) | 📋 Full REST API reference / 完整 API 参考 |
 | [Changelog](./docs/CHANGELOG.md) | 📝 Version history / 版本记录 |
 
