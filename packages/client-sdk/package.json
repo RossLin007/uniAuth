@@ -1,6 +1,6 @@
 {
     "name": "@55387.ai/uniauth-client",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "description": "UniAuth Frontend SDK - Phone, Email, SSO login for browser",
     "type": "module",
     "main": "./dist/index.js",
