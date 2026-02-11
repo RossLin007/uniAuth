@@ -33,7 +33,9 @@ const config: UniAuthProviderConfig = {
   redirectUri: window.location.origin + '/callback',
   sso: {
     ssoUrl: 'https://sso.55387.xyz',
-    usePKCE: true,     // Recommended for SPA / 推荐用于单页应用
+    clientId: import.meta.env.VITE_UNIAUTH_CLIENT_ID, // Required / 必填
+    redirectUri: window.location.origin + '/callback', // Required / 必填
+    usePKCE: true,
   }
 };
 
@@ -45,6 +47,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );
 ```
+
+> [!IMPORTANT]
+> The `sso` configuration object is **REQUIRED** if you intend to use the `login()` method from `useUniAuth()`.
+> 如果您打算使用 `useUniAuth()` 中的 `login()` 方法，`sso` 配置对象是 **必须** 的。
 
 ### 2. Use the Hook / 使用 Hook
 

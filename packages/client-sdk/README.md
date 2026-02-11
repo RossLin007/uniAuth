@@ -69,6 +69,9 @@ auth.startSocialLogin('google');
 ### 🔐 SSO / 单点登录
 
 ```typescript
+// ⚠️ Must call configureSso() before using loginWithSSO()
+// ⚠️ 使用 loginWithSSO() 前必须调用 configureSso()
+
 // Configure / 配置
 auth.configureSso({
   ssoUrl: 'https://sso.55387.xyz',
