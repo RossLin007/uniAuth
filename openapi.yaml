@@ -2,7 +2,7 @@
   openapi: "3.0.3"
   info: 
     title: "UniAuth API"
-    description: "\n# UniAuth 统一认证服务 API\n\nUniAuth 是一个现代化的统一认证服务，支持多种登录方式和 OAuth 2.0 提供商功能。\n\n## 特性\n\n- 📱 手机验证码登录\n- 📧 邮箱密码登录\n- 🔐 OAuth 2.0 社交登录 (Google, GitHub, WeChat)\n- 🎫 JWT Token 管理\n- 🔄 Token 自动刷新\n- 📊 多设备会话管理\n- 🏢 OAuth 2.0 Provider 能力\n\n## 认证方式\n\n大多数 API 需要在请求头中携带 Bearer Token：\n\n```\nAuthorization: Bearer <access_token>\n```\n\n## 错误处理\n\n所有 API 返回统一的错误格式：\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"ERROR_CODE\",\n    \"message\": \"Human-readable error message\"\n  }\n}\n```\n        "
+    description: "\n# UniAuth 统一认证服务 API\n\nUniAuth 是一个现代化的统一认证服务，支持多种登录方式和 OAuth 2.0 提供商功能。\n\n## 特性\n\n- 📱 手机验证码登录\n- 📧 邮箱密码登录\n- 🔐 OAuth 2.0 社交登录 (Google, GitHub, WeChat)\n- 🔑 Passkey / WebAuthn 无密码登录\n- 🏢 可信客户端 API (Trusted Client)\n- 🔗 账号关联 (Account Linking)\n- 🎫 JWT Token 管理\n- 🔄 Token 自动刷新\n- 📊 多设备会话管理\n- 🏢 OAuth 2.0 Provider 能力\n- 📋 OIDC Discovery\n\n## 认证方式\n\n大多数 API 需要在请求头中携带 Bearer Token：\n\n```\nAuthorization: Bearer <access_token>\n```\n\n可信客户端 API 需要 X-Client-Id + X-Client-Secret 请求头。\n\n## 错误处理\n\n所有 API 返回统一的错误格式：\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"ERROR_CODE\",\n    \"message\": \"Human-readable error message\"\n  }\n}\n```\n        "
     version: "1.0.0"
     contact: 
       name: "UniAuth Support"
@@ -30,15 +30,34 @@
     - 
       name: "OAuth2"
       description: "OAuth 2.0 提供商 / OAuth 2.0 Provider"
+    - 
+      name: "Passkey"
+      description: "Passkey / WebAuthn 无密码认证 / Passwordless Authentication"
+    - 
+      name: "TrustedAuth"
+      description: "可信客户端 API / Trusted Client API"
+    - 
+      name: "AccountLinking"
+      description: "账号关联 / Account Linking"
+    - 
+      name: "Branding"
+      description: "品牌配置 / Branding Configuration"
+    - 
+      name: "MFA"
+      description: "多因素认证 / Multi-Factor Authentication"
+    - 
+      name: "OIDC"
+      description: "OpenID Connect Discovery"
   paths: 
     /health: 
       get: 
+        operationId: getHealth
         tags: 
           - "Health"
         summary: "简单健康检查 / Simple Health Check"
         description: "返回服务运行状态，用于负载均衡器"
         responses: 
-          200: 
+          "200": 
             description: "服务正常"
             content: 
               application/json: 
@@ -53,12 +72,13 @@
                       format: "date-time"
     /health/ready: 
       get: 
+        operationId: getHealthReady
         tags: 
           - "Health"
         summary: "就绪检查 / Readiness Check"
         description: "深度健康检查，验证数据库和 Redis 连接"
         responses: 
-          200: 
+          "200": 
             description: "所有依赖正常"
             content: 
               application/json: 
@@ -83,10 +103,11 @@
                       type: "string"
                     uptime: 
                       type: "number"
-          503: 
+          "503": 
             description: "服务降级"
     /api/v1/auth/phone/send-code: 
       post: 
+        operationId: sendPhoneCode
         tags: 
           - "Authentication"
         summary: "发送手机验证码 / Send Phone Verification Code"
@@ -104,7 +125,7 @@
                 required: 
                   - "phone"
         responses: 
-          200: 
+          "200": 
             description: "验证码发送成功"
             content: 
               application/json: 
@@ -123,10 +144,11 @@
                         retry_after: 
                           type: "number"
                           example: 60
-          429: 
+          "429": 
             description: "请求过于频繁"
     /api/v1/auth/phone/verify: 
       post: 
+        operationId: verifyPhoneCode
         tags: 
           - "Authentication"
         summary: "手机验证码登录 / Phone Code Login"
@@ -148,16 +170,21 @@
                   - "phone"
                   - "code"
         responses: 
-          200: 
+          "200": 
             description: "登录成功"
             content: 
               application/json: 
                 schema: 
                   $ref: "#/components/schemas/LoginResponse"
-          401: 
+          "401": 
             description: "验证码错误或已过期"
+            content: 
+              application/json: 
+                schema: 
+                  $ref: "#/components/schemas/Error"
     /api/v1/auth/email/send-code: 
       post: 
+        operationId: sendEmailCode
         tags: 
           - "Authentication"
         summary: "发送邮箱验证码 / Send Email Verification Code"
@@ -183,12 +210,13 @@
                 required: 
                   - "email"
         responses: 
-          200: 
+          "200": 
             description: "验证码发送成功"
-          429: 
+          "429": 
             description: "请求过于频繁"
     /api/v1/auth/email/verify: 
       post: 
+        operationId: verifyEmailCode
         tags: 
           - "Authentication"
         summary: "邮箱验证码登录 / Email Code Login"
@@ -210,19 +238,21 @@
                   - "email"
                   - "code"
         responses: 
-          200: 
+          "200": 
             description: "登录成功"
             content: 
               application/json: 
                 schema: 
                   $ref: "#/components/schemas/LoginResponse"
-          401: 
+          "401": 
             description: "验证码错误或已过期"
     /api/v1/auth/email/login: 
       post: 
+        operationId: loginWithEmail
         tags: 
           - "Authentication"
         summary: "邮箱密码登录 / Email Password Login"
+        description: "使用邮箱和密码登录，返回访问令牌"
         requestBody: 
           required: true
           content: 
@@ -240,19 +270,21 @@
                   - "email"
                   - "password"
         responses: 
-          200: 
+          "200": 
             description: "登录成功"
             content: 
               application/json: 
                 schema: 
                   $ref: "#/components/schemas/LoginResponse"
-          401: 
+          "401": 
             description: "邮箱或密码错误"
     /api/v1/auth/refresh: 
       post: 
+        operationId: refreshToken
         tags: 
           - "Authentication"
         summary: "刷新令牌 / Refresh Token"
+        description: "使用 refresh token 刷新访问令牌"
         requestBody: 
           required: true
           content: 
@@ -265,7 +297,7 @@
                 required: 
                   - "refresh_token"
         responses: 
-          200: 
+          "200": 
             description: "刷新成功"
             content: 
               application/json: 
@@ -285,9 +317,11 @@
                           type: "number"
     /api/v1/auth/logout: 
       post: 
+        operationId: logout
         tags: 
           - "Authentication"
         summary: "登出 / Logout"
+        description: "注销当前会话并使 token 失效"
         security: 
           - 
             bearerAuth: []
@@ -300,24 +334,28 @@
                   refresh_token: 
                     type: "string"
         responses: 
-          200: 
+          "200": 
             description: "登出成功"
     /api/v1/auth/logout-all: 
       post: 
+        operationId: logoutAll
         tags: 
           - "Authentication"
         summary: "全设备登出 / Logout All Devices"
+        description: "注销用户所有会话，使所有 token 失效"
         security: 
           - 
             bearerAuth: []
         responses: 
-          200: 
+          "200": 
             description: "全部设备登出成功"
     /api/v1/auth/email/register: 
       post: 
+        operationId: registerWithEmail
         tags: 
           - "Authentication"
         summary: "邮箱注册 / Email Registration"
+        description: "使用邮箱和密码注册新用户"
         requestBody: 
           required: true
           content: 
@@ -338,19 +376,21 @@
                   - "email"
                   - "password"
         responses: 
-          200: 
+          "200": 
             description: "注册成功"
             content: 
               application/json: 
                 schema: 
                   $ref: "#/components/schemas/LoginResponse"
-          400: 
+          "400": 
             description: "邮箱已存在或验证码错误"
     /api/v1/auth/verify: 
       post: 
+        operationId: verifyToken
         tags: 
           - "Authentication"
         summary: "验证 Token / Verify Token"
+        description: "验证访问令牌是否有效"
         requestBody: 
           required: true
           content: 
@@ -363,58 +403,65 @@
                 required: 
                   - "token"
         responses: 
-          200: 
+          "200": 
             description: "Token 有效"
-          401: 
+          "401": 
             description: "Token 无效或已过期"
     /api/v1/auth/google: 
       get: 
+        operationId: oauthGoogle
         tags: 
           - "Authentication"
         summary: "Google OAuth 登录 / Google OAuth Login"
         description: "重定向到 Google 登录页面"
         responses: 
-          302: 
+          "302": 
             description: "重定向到 Google"
     /api/v1/auth/github: 
       get: 
+        operationId: oauthGithub
         tags: 
           - "Authentication"
         summary: "GitHub OAuth 登录 / GitHub OAuth Login"
         description: "重定向到 GitHub 登录页面"
         responses: 
-          302: 
+          "302": 
             description: "重定向到 GitHub"
     /api/v1/auth/wechat: 
       get: 
+        operationId: oauthWechat
         tags: 
           - "Authentication"
         summary: "微信 OAuth 登录 / WeChat OAuth Login"
         description: "重定向到微信登录页面"
         responses: 
-          302: 
+          "302": 
             description: "重定向到微信"
     /api/v1/user/me: 
       get: 
+        operationId: getCurrentUser
         tags: 
           - "User"
         summary: "获取当前用户 / Get Current User"
+        description: "获取当前登录用户的详细信息"
         security: 
           - 
             bearerAuth: []
         responses: 
-          200: 
+          "200": 
             description: "成功"
             content: 
               application/json: 
                 schema: 
                   $ref: "#/components/schemas/UserResponse"
-          401: 
+          "401": 
             description: "未认证"
       patch: 
+        operationId: updateCurrentUser
         tags: 
           - "User"
         summary: "更新用户资料 / Update Profile"
+        description: "更新当前用户的个人信息"
         security: 
           - 
             bearerAuth: []
@@ -430,24 +477,28 @@
                     type: "string"
                     format: "uri"
         responses: 
-          200: 
+          "200": 
             description: "更新成功"
     /api/v1/user/sessions: 
       get: 
+        operationId: getUserSessions
         tags: 
           - "User"
         summary: "获取登录设备 / Get Sessions"
+        description: "获取用户的所有活跃会话列表"
         security: 
           - 
             bearerAuth: []
         responses: 
-          200: 
+          "200": 
             description: "成功"
     /api/v1/user/sessions/{id}: 
       delete: 
+        operationId: deleteUserSession
         tags: 
           - "User"
         summary: "撤销特定会话 / Revoke Session"
+        description: "删除用户的指定会话"
         security: 
           - 
             bearerAuth: []
@@ -459,20 +510,22 @@
             schema: 
               type: "string"
         responses: 
-          200: 
+          "200": 
             description: "撤销成功"
-          404: 
+          "404": 
             description: "会话不存在"
     /api/v1/user/bindings: 
       get: 
+        operationId: getUserBindings
         tags: 
           - "User"
         summary: "获取账户绑定 / Get Account Bindings"
+        description: "获取用户已绑定的第三方账号列表"
         security: 
           - 
             bearerAuth: []
         responses: 
-          200: 
+          "200": 
             description: "成功"
             content: 
               application/json: 
@@ -495,9 +548,11 @@
                             format: "date-time"
     /api/v1/user/unbind/{provider}: 
       delete: 
+        operationId: unbindProvider
         tags: 
           - "User"
         summary: "解绑 OAuth 账户 / Unbind OAuth"
+        description: "解绑指定的第三方登录方式"
         security: 
           - 
             bearerAuth: []
@@ -513,15 +568,17 @@
                 - "github"
                 - "wechat"
         responses: 
-          200: 
+          "200": 
             description: "解绑成功"
-          400: 
+          "400": 
             description: "无法解绑（唯一登录方式）"
     /api/v1/user/bind/phone: 
       post: 
+        operationId: bindPhone
         tags: 
           - "User"
         summary: "绑定手机号 / Bind Phone"
+        description: "绑定手机号到当前用户"
         security: 
           - 
             bearerAuth: []
@@ -540,15 +597,17 @@
                   - "phone"
                   - "code"
         responses: 
-          200: 
+          "200": 
             description: "绑定成功"
-          400: 
+          "400": 
             description: "验证码错误或手机号已被使用"
     /api/v1/user/bind/email: 
       post: 
+        operationId: bindEmail
         tags: 
           - "User"
         summary: "绑定邮箱 / Bind Email"
+        description: "绑定邮箱到当前用户"
         security: 
           - 
             bearerAuth: []
@@ -568,26 +627,30 @@
                   - "email"
                   - "code"
         responses: 
-          200: 
+          "200": 
             description: "绑定成功"
-          400: 
+          "400": 
             description: "验证码错误或邮箱已被使用"
     /api/v1/user/authorized-apps: 
       get: 
+        operationId: listAuthorizedApps
         tags: 
           - "User"
         summary: "获取已授权应用 / Get Authorized Apps"
+        description: "获取用户授权的第三方应用列表"
         security: 
           - 
             bearerAuth: []
         responses: 
-          200: 
+          "200": 
             description: "成功"
     /api/v1/user/authorized-apps/{clientId}: 
       delete: 
+        operationId: revokeAuthorizedApp
         tags: 
           - "User"
         summary: "撤销应用授权 / Revoke App Authorization"
+        description: "撤销指定应用的授权"
         security: 
           - 
             bearerAuth: []
@@ -599,18 +662,20 @@
             schema: 
               type: "string"
         responses: 
-          200: 
+          "200": 
             description: "撤销成功"
     /api/v1/mfa/status: 
       get: 
+        operationId: getMfaStatus
         tags: 
           - "MFA"
         summary: "获取 MFA 状态 / Get MFA Status"
+        description: "获取用户 MFA 设置状态"
         security: 
           - 
             bearerAuth: []
         responses: 
-          200: 
+          "200": 
             description: "成功"
             content: 
               application/json: 
@@ -630,14 +695,16 @@
                             type: "string"
     /api/v1/mfa/setup: 
       post: 
+        operationId: mfaSetup
         tags: 
           - "MFA"
         summary: "开始 MFA 设置 / Start MFA Setup"
+        description: "初始化 MFA 设置，生成 TOTP 密钥"
         security: 
           - 
             bearerAuth: []
         responses: 
-          200: 
+          "200": 
             description: "成功"
             content: 
               application/json: 
@@ -656,9 +723,11 @@
                           description: "Base64 QR code image"
     /api/v1/mfa/verify-setup: 
       post: 
+        operationId: mfaVerifySetup
         tags: 
           - "MFA"
         summary: "验证 MFA 设置 / Verify MFA Setup"
+        description: "验证 TOTP 代码完成 MFA 设置"
         security: 
           - 
             bearerAuth: []
@@ -676,7 +745,7 @@
                 required: 
                   - "code"
         responses: 
-          200: 
+          "200": 
             description: "MFA 启用成功"
             content: 
               application/json: 
@@ -694,9 +763,11 @@
                             type: "string"
     /api/v1/mfa/verify: 
       post: 
+        operationId: mfaVerify
         tags: 
           - "MFA"
         summary: "验证 MFA 代码 / Verify MFA Code"
+        description: "在登录流程中验证 MFA 代码"
         security: 
           - 
             bearerAuth: []
@@ -712,15 +783,17 @@
                 required: 
                   - "code"
         responses: 
-          200: 
+          "200": 
             description: "MFA 验证成功"
-          400: 
+          "400": 
             description: "验证码错误"
     /api/v1/mfa/disable: 
       post: 
+        operationId: mfaDisable
         tags: 
           - "MFA"
         summary: "禁用 MFA / Disable MFA"
+        description: "关闭用户的 MFA 二次验证"
         security: 
           - 
             bearerAuth: []
@@ -736,13 +809,15 @@
                 required: 
                   - "code"
         responses: 
-          200: 
+          "200": 
             description: "MFA 已禁用"
     /api/v1/mfa/regenerate-recovery: 
       post: 
+        operationId: mfaRegenerateRecovery
         tags: 
           - "MFA"
         summary: "重新生成恢复码 / Regenerate Recovery Codes"
+        description: "重新生成 MFA 恢复码"
         security: 
           - 
             bearerAuth: []
@@ -758,7 +833,7 @@
                 required: 
                   - "code"
         responses: 
-          200: 
+          "200": 
             description: "成功"
             content: 
               application/json: 
@@ -776,6 +851,7 @@
                             type: "string"
     /api/v1/oauth2/validate: 
       get: 
+        operationId: oauth2Validate
         tags: 
           - "OAuth2"
         summary: "验证客户端 / Validate Client"
@@ -827,12 +903,13 @@
                 - "S256"
                 - "plain"
         responses: 
-          200: 
+          "200": 
             description: "客户端验证成功"
-          400: 
+          "400": 
             description: "无效的客户端或回调地址"
     /api/v1/oauth2/authorize: 
       post: 
+        operationId: oauth2AuthorizePost
         tags: 
           - "OAuth2"
         summary: "授权请求 / Authorization Request"
@@ -872,7 +949,7 @@
                   - "redirect_uri"
                   - "response_type"
         responses: 
-          200: 
+          "200": 
             description: "授权成功，返回重定向 URL"
             content: 
               application/json: 
@@ -889,10 +966,11 @@
                           format: "uri"
     /api/v1/oauth2/token: 
       post: 
+        operationId: oauth2Token
         tags: 
           - "OAuth2"
         summary: "令牌交换 / Token Exchange"
-        description: "使用授权码换取访问令牌"
+        description: "使用授权码或客户端凭证换取访问令牌。支持 authorization_code（用户授权）和 client_credentials（M2M 机器对机器）两种授权类型。"
         requestBody: 
           required: true
           content: 
@@ -904,23 +982,28 @@
                     type: "string"
                     enum: 
                       - "authorization_code"
+                      - "client_credentials"
+                    description: "授权类型：authorization_code（用户授权）或 client_credentials（M2M）"
                   client_id: 
                     type: "string"
                   client_secret: 
                     type: "string"
                   code: 
                     type: "string"
+                    description: "授权码（grant_type=authorization_code 时必填）"
                   redirect_uri: 
                     type: "string"
                     format: "uri"
+                    description: "回调地址（grant_type=authorization_code 时必填）"
                   code_verifier: 
                     type: "string"
-                    description: "PKCE code verifier"
+                    description: "PKCE code verifier（可选）"
+                  scope: 
+                    type: "string"
+                    description: "请求的权限范围（grant_type=client_credentials 时可选）"
                 required: 
                   - "grant_type"
                   - "client_id"
-                  - "code"
-                  - "redirect_uri"
             application/json: 
               schema: 
                 type: "object"
@@ -929,6 +1012,7 @@
                     type: "string"
                     enum: 
                       - "authorization_code"
+                      - "client_credentials"
                   client_id: 
                     type: "string"
                   client_secret: 
@@ -940,22 +1024,25 @@
                     format: "uri"
                   code_verifier: 
                     type: "string"
+                  scope: 
+                    type: "string"
                 required: 
                   - "grant_type"
                   - "client_id"
-                  - "code"
-                  - "redirect_uri"
         responses: 
-          200: 
+          "200": 
             description: "令牌交换成功"
             content: 
               application/json: 
                 schema: 
                   $ref: "#/components/schemas/OAuth2TokenResponse"
-          400: 
+          "400": 
             description: "请求无效"
+          "401": 
+            description: "客户端认证失败"
     /api/v1/oauth2/userinfo: 
       get: 
+        operationId: oauth2Userinfo
         tags: 
           - "OAuth2"
         summary: "用户信息 / User Info"
@@ -964,7 +1051,7 @@
           - 
             bearerAuth: []
         responses: 
-          200: 
+          "200": 
             description: "成功"
             content: 
               application/json: 
@@ -987,6 +1074,983 @@
                     picture: 
                       type: "string"
                       format: "uri"
+    # ============================================
+    # MFA Login Verification / MFA 登录验证
+    # ============================================
+    /api/v1/auth/mfa/verify-login: 
+      post: 
+        operationId: verifyMfaLogin
+        tags: 
+          - "Authentication"
+        summary: "MFA 登录验证 / MFA Login Verification"
+        description: "登录时验证 MFA 验证码（TOTP 或恢复码）"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  mfa_token: 
+                    type: "string"
+                    description: "MFA 令牌（登录时返回）"
+                  code: 
+                    type: "string"
+                    description: "TOTP 验证码（6位）或恢复码"
+                    minLength: 6
+                    maxLength: 10
+                required: 
+                  - "mfa_token"
+                  - "code"
+        responses: 
+          "200": 
+            description: "MFA 验证成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                      example: true
+                    data: 
+                      type: "object"
+                      properties: 
+                        user: 
+                          $ref: "#/components/schemas/User"
+                        access_token: 
+                          type: "string"
+                        refresh_token: 
+                          type: "string"
+                        expires_in: 
+                          type: "number"
+          "401": 
+            description: "MFA 验证失败"
+
+    # ============================================
+    # Passkey / WebAuthn
+    # ============================================
+    /api/v1/auth/passkey/register/options: 
+      post: 
+        operationId: passkeyRegisterOptions
+        tags: 
+          - "Passkey"
+        summary: "获取注册选项 / Get Registration Options"
+        description: "生成 WebAuthn 注册选项。需要用户已登录。"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          "200": 
+            description: "注册选项"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        options: 
+                          type: "object"
+                          description: "PublicKeyCredentialCreationOptions"
+          "401": 
+            description: "未认证"
+
+    /api/v1/auth/passkey/register/verify: 
+      post: 
+        operationId: passkeyRegisterVerify
+        tags: 
+          - "Passkey"
+        summary: "验证注册 / Verify Registration"
+        description: "验证 WebAuthn 注册响应并保存凭证。需要用户已登录。"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  credential: 
+                    type: "object"
+                    description: "AuthenticatorAttestationResponse from navigator.credentials.create()"
+                  name: 
+                    type: "string"
+                    description: "凭证名称（如 'MacBook Pro'）"
+                required: 
+                  - "credential"
+        responses: 
+          "200": 
+            description: "注册成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        credential_id: 
+                          type: "string"
+          "400": 
+            description: "验证失败"
+
+    /api/v1/auth/passkey/login/options: 
+      post: 
+        operationId: passkeyLoginOptions
+        tags: 
+          - "Passkey"
+        summary: "获取认证选项 / Get Authentication Options"
+        description: "生成 WebAuthn 认证选项。无需登录。"
+        requestBody: 
+          required: false
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  email: 
+                    type: "string"
+                    description: "可选的用户邮箱，用于限定凭证"
+        responses: 
+          "200": 
+            description: "认证选项"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        options: 
+                          type: "object"
+                          description: "PublicKeyCredentialRequestOptions"
+
+    /api/v1/auth/passkey/login/verify: 
+      post: 
+        operationId: passkeyLoginVerify
+        tags: 
+          - "Passkey"
+        summary: "验证认证 / Verify Authentication"
+        description: "验证 WebAuthn 认证响应并登录。无需登录。"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  credential: 
+                    type: "object"
+                    description: "AuthenticatorAssertionResponse from navigator.credentials.get()"
+                required: 
+                  - "credential"
+        responses: 
+          "200": 
+            description: "认证成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        user: 
+                          $ref: "#/components/schemas/User"
+                        access_token: 
+                          type: "string"
+                        refresh_token: 
+                          type: "string"
+          "401": 
+            description: "认证失败"
+
+    /api/v1/auth/passkey/credentials: 
+      get: 
+        operationId: listPasskeyCredentials
+        tags: 
+          - "Passkey"
+        summary: "获取凭证列表 / List Credentials"
+        description: "获取当前用户的所有 Passkey 凭证"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          "200": 
+            description: "凭证列表"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        credentials: 
+                          type: "array"
+                          items: 
+                            type: "object"
+                            properties: 
+                              id: 
+                                type: "string"
+                              name: 
+                                type: "string"
+                              created_at: 
+                                type: "string"
+                                format: "date-time"
+                              last_used_at: 
+                                type: "string"
+                                format: "date-time"
+                                nullable: true
+
+    /api/v1/auth/passkey/credentials/{credentialId}: 
+      patch: 
+        operationId: updatePasskeyCredential
+        tags: 
+          - "Passkey"
+        summary: "更新凭证 / Update Credential"
+        description: "重命名 Passkey 凭证"
+        security: 
+          - 
+            bearerAuth: []
+        parameters: 
+          - 
+            name: "credentialId"
+            in: "path"
+            required: true
+            schema: 
+              type: "string"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  name: 
+                    type: "string"
+                required: 
+                  - "name"
+        responses: 
+          "200": 
+            description: "更新成功"
+          "404": 
+            description: "凭证不存在"
+      delete: 
+        operationId: deletePasskeyCredential
+        tags: 
+          - "Passkey"
+        summary: "删除凭证 / Delete Credential"
+        description: "删除 Passkey 凭证"
+        security: 
+          - 
+            bearerAuth: []
+        parameters: 
+          - 
+            name: "credentialId"
+            in: "path"
+            required: true
+            schema: 
+              type: "string"
+        responses: 
+          "200": 
+            description: "删除成功"
+          "404": 
+            description: "凭证不存在"
+
+    # ============================================
+    # Trusted Client API / 可信客户端 API
+    # ============================================
+    /api/v1/auth/trusted/phone/send-code: 
+      post: 
+        operationId: trustedSendPhoneCode
+        tags: 
+          - "TrustedAuth"
+        summary: "发送手机验证码 / Send Phone Code"
+        description: "通过可信客户端发送手机验证码。需要 X-Client-Id 和 X-Client-Secret 请求头。"
+        parameters: 
+          - 
+            name: "X-Client-Id"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+          - 
+            name: "X-Client-Secret"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  phone: 
+                    type: "string"
+                    description: "手机号码"
+                required: 
+                  - "phone"
+        responses: 
+          "200": 
+            description: "验证码已发送"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        expires_in: 
+                          type: "number"
+                          description: "验证码有效时间（秒）"
+          "429": 
+            description: "请求过于频繁"
+
+    /api/v1/auth/trusted/phone/verify: 
+      post: 
+        operationId: trustedVerifyPhoneCode
+        tags: 
+          - "TrustedAuth"
+        summary: "验证手机登录 / Verify Phone Login"
+        description: "通过可信客户端验证手机验证码并登录"
+        parameters: 
+          - 
+            name: "X-Client-Id"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+          - 
+            name: "X-Client-Secret"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  phone: 
+                    type: "string"
+                  code: 
+                    type: "string"
+                    description: "6位验证码"
+                required: 
+                  - "phone"
+                  - "code"
+        responses: 
+          "200": 
+            description: "登录成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        user: 
+                          $ref: "#/components/schemas/User"
+                        access_token: 
+                          type: "string"
+                        refresh_token: 
+                          type: "string"
+                        mfa_required: 
+                          type: "boolean"
+                        mfa_token: 
+                          type: "string"
+
+    /api/v1/auth/trusted/email/send-code: 
+      post: 
+        operationId: trustedSendEmailCode
+        tags: 
+          - "TrustedAuth"
+        summary: "发送邮箱验证码 / Send Email Code"
+        description: "通过可信客户端发送邮箱验证码"
+        parameters: 
+          - 
+            name: "X-Client-Id"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+          - 
+            name: "X-Client-Secret"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  email: 
+                    type: "string"
+                    format: "email"
+                required: 
+                  - "email"
+        responses: 
+          "200": 
+            description: "验证码已发送"
+          "429": 
+            description: "请求过于频繁"
+
+    /api/v1/auth/trusted/email/verify: 
+      post: 
+        operationId: trustedVerifyEmailCode
+        tags: 
+          - "TrustedAuth"
+        summary: "验证邮箱登录 / Verify Email Login"
+        description: "通过可信客户端验证邮箱验证码并登录"
+        parameters: 
+          - 
+            name: "X-Client-Id"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+          - 
+            name: "X-Client-Secret"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  email: 
+                    type: "string"
+                    format: "email"
+                  code: 
+                    type: "string"
+                required: 
+                  - "email"
+                  - "code"
+        responses: 
+          "200": 
+            description: "登录成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        user: 
+                          $ref: "#/components/schemas/User"
+                        access_token: 
+                          type: "string"
+                        refresh_token: 
+                          type: "string"
+
+    /api/v1/auth/trusted/email/login: 
+      post: 
+        operationId: trustedEmailLogin
+        tags: 
+          - "TrustedAuth"
+        summary: "邮箱密码登录 / Email Password Login"
+        description: "通过可信客户端使用邮箱密码直接登录"
+        parameters: 
+          - 
+            name: "X-Client-Id"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+          - 
+            name: "X-Client-Secret"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  email: 
+                    type: "string"
+                    format: "email"
+                  password: 
+                    type: "string"
+                required: 
+                  - "email"
+                  - "password"
+        responses: 
+          "200": 
+            description: "登录成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        user: 
+                          $ref: "#/components/schemas/User"
+                        access_token: 
+                          type: "string"
+                        refresh_token: 
+                          type: "string"
+                        mfa_required: 
+                          type: "boolean"
+                        mfa_token: 
+                          type: "string"
+          "401": 
+            description: "登录失败"
+
+    /api/v1/auth/trusted/mfa/verify: 
+      post: 
+        operationId: trustedMfaVerify
+        tags: 
+          - "TrustedAuth"
+        summary: "可信客户端 MFA 验证 / Trusted MFA Verify"
+        description: "通过可信客户端完成 MFA 验证"
+        parameters: 
+          - 
+            name: "X-Client-Id"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+          - 
+            name: "X-Client-Secret"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  mfa_token: 
+                    type: "string"
+                  code: 
+                    type: "string"
+                required: 
+                  - "mfa_token"
+                  - "code"
+        responses: 
+          "200": 
+            description: "MFA 验证成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        user: 
+                          $ref: "#/components/schemas/User"
+                        access_token: 
+                          type: "string"
+                        refresh_token: 
+                          type: "string"
+          "401": 
+            description: "验证失败"
+
+    /api/v1/auth/trusted/token/refresh: 
+      post: 
+        operationId: trustedTokenRefresh
+        tags: 
+          - "TrustedAuth"
+        summary: "刷新令牌 / Refresh Token"
+        description: "通过可信客户端刷新访问令牌"
+        parameters: 
+          - 
+            name: "X-Client-Id"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+          - 
+            name: "X-Client-Secret"
+            in: "header"
+            required: true
+            schema: 
+              type: "string"
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  refresh_token: 
+                    type: "string"
+                required: 
+                  - "refresh_token"
+        responses: 
+          "200": 
+            description: "刷新成功"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        access_token: 
+                          type: "string"
+                        refresh_token: 
+                          type: "string"
+                        expires_in: 
+                          type: "number"
+          "401": 
+            description: "刷新失败"
+
+    # ============================================
+    # Account Linking / 账号关联
+    # ============================================
+    /api/v1/account/linked-accounts: 
+      get: 
+        operationId: listLinkedAccounts
+        tags: 
+          - "AccountLinking"
+        summary: "获取关联账号 / Get Linked Accounts"
+        description: "获取当前用户的所有已关联社交账号"
+        security: 
+          - 
+            bearerAuth: []
+        responses: 
+          "200": 
+            description: "关联账号列表"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        accounts: 
+                          type: "array"
+                          items: 
+                            type: "object"
+                            properties: 
+                              provider: 
+                                type: "string"
+                                enum: ["google", "github", "wechat"]
+                              provider_user_id: 
+                                type: "string"
+                              display_name: 
+                                type: "string"
+                              linked_at: 
+                                type: "string"
+                                format: "date-time"
+
+    /api/v1/account/link: 
+      post: 
+        operationId: linkAccount
+        tags: 
+          - "AccountLinking"
+        summary: "关联社交账号 / Link Social Account"
+        description: "通过 OAuth 回调数据关联新的社交账号到当前用户"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  provider: 
+                    type: "string"
+                    enum: ["google", "github", "wechat"]
+                  provider_user_id: 
+                    type: "string"
+                  access_token: 
+                    type: "string"
+                    description: "OAuth 提供商的 access_token"
+                required: 
+                  - "provider"
+                  - "provider_user_id"
+        responses: 
+          "200": 
+            description: "关联成功"
+          "409": 
+            description: "该社交账号已被其他用户关联"
+
+    /api/v1/account/link/{provider}: 
+      delete: 
+        operationId: unlinkAccount
+        tags: 
+          - "AccountLinking"
+        summary: "取消关联 / Unlink Account"
+        description: "取消关联指定提供商的社交账号"
+        security: 
+          - 
+            bearerAuth: []
+        parameters: 
+          - 
+            name: "provider"
+            in: "path"
+            required: true
+            schema: 
+              type: "string"
+              enum: ["google", "github", "wechat"]
+        responses: 
+          "200": 
+            description: "取消关联成功"
+          "400": 
+            description: "无法取消（可能是唯一的登录方式）"
+
+    /api/v1/account/link/check/{provider}: 
+      get: 
+        operationId: checkLinkedAccount
+        tags: 
+          - "AccountLinking"
+        summary: "检查可关联性 / Check Linkability"
+        description: "检查指定提供商账号是否可以关联（无冲突）"
+        security: 
+          - 
+            bearerAuth: []
+        parameters: 
+          - 
+            name: "provider"
+            in: "path"
+            required: true
+            schema: 
+              type: "string"
+              enum: ["google", "github", "wechat"]
+        responses: 
+          "200": 
+            description: "检查结果"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        can_link: 
+                          type: "boolean"
+                        reason: 
+                          type: "string"
+
+    /api/v1/account/link-oauth: 
+      post: 
+        operationId: linkOAuthAccount
+        tags: 
+          - "AccountLinking"
+        summary: "安全关联 / Secure Link via OAuth Code"
+        description: "通过 OAuth 授权码服务端交换安全地关联社交账号"
+        security: 
+          - 
+            bearerAuth: []
+        requestBody: 
+          required: true
+          content: 
+            application/json: 
+              schema: 
+                type: "object"
+                properties: 
+                  provider: 
+                    type: "string"
+                    enum: ["google", "github", "wechat"]
+                  code: 
+                    type: "string"
+                    description: "OAuth 授权码"
+                  redirect_uri: 
+                    type: "string"
+                    format: "uri"
+                required: 
+                  - "provider"
+                  - "code"
+        responses: 
+          "200": 
+            description: "关联成功"
+          "409": 
+            description: "该社交账号已被其他用户关联"
+
+    # ============================================
+    # Branding / 品牌配置
+    # ============================================
+    /api/v1/branding/{clientId}: 
+      get: 
+        operationId: getBranding
+        tags: 
+          - "Branding"
+        summary: "获取品牌配置 / Get Branding"
+        description: "获取指定应用的品牌配置信息（颜色、Logo、社交登录设置等）。无需认证。"
+        parameters: 
+          - 
+            name: "clientId"
+            in: "path"
+            required: true
+            schema: 
+              type: "string"
+            description: "应用的 Client ID"
+        responses: 
+          "200": 
+            description: "品牌配置信息"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    success: 
+                      type: "boolean"
+                    data: 
+                      type: "object"
+                      properties: 
+                        app_name: 
+                          type: "string"
+                        logo_url: 
+                          type: "string"
+                          format: "uri"
+                        primary_color: 
+                          type: "string"
+                        social_logins: 
+                          type: "array"
+                          items: 
+                            type: "string"
+
+    # ============================================
+    # OIDC Discovery / OpenID Connect 发现
+    # ============================================
+    /.well-known/openid-configuration: 
+      get: 
+        operationId: getOidcConfig
+        tags: 
+          - "OIDC"
+        summary: "OIDC 发现文档 / Discovery Document"
+        description: "OpenID Connect Provider Configuration Information"
+        responses: 
+          "200": 
+            description: "OIDC 配置"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    issuer: 
+                      type: "string"
+                    authorization_endpoint: 
+                      type: "string"
+                    token_endpoint: 
+                      type: "string"
+                    userinfo_endpoint: 
+                      type: "string"
+                    jwks_uri: 
+                      type: "string"
+                    response_types_supported: 
+                      type: "array"
+                      items: 
+                        type: "string"
+                    grant_types_supported: 
+                      type: "array"
+                      items: 
+                        type: "string"
+                      example: ["authorization_code", "client_credentials", "refresh_token"]
+                    scopes_supported: 
+                      type: "array"
+                      items: 
+                        type: "string"
+                      example: ["openid", "profile", "email", "phone"]
+                    id_token_signing_alg_values_supported: 
+                      type: "array"
+                      items: 
+                        type: "string"
+                      example: ["RS256"]
+                    code_challenge_methods_supported: 
+                      type: "array"
+                      items: 
+                        type: "string"
+                      example: ["S256", "plain"]
+
+    /.well-known/jwks.json: 
+      get: 
+        operationId: getJwks
+        tags: 
+          - "OIDC"
+        summary: "JWKS 端点 / JWKS Endpoint"
+        description: "JSON Web Key Set — 用于验证 ID Token 签名的公钥集合"
+        responses: 
+          "200": 
+            description: "JWKS"
+            content: 
+              application/json: 
+                schema: 
+                  type: "object"
+                  properties: 
+                    keys: 
+                      type: "array"
+                      items: 
+                        type: "object"
+                        properties: 
+                          kty: 
+                            type: "string"
+                            example: "RSA"
+                          use: 
+                            type: "string"
+                            example: "sig"
+                          kid: 
+                            type: "string"
+                          alg: 
+                            type: "string"
+                            example: "RS256"
+                          n: 
+                            type: "string"
+                          e: 
+                            type: "string"
+
   components: 
     securitySchemes: 
       bearerAuth: 

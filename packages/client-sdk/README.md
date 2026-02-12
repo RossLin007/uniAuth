@@ -167,6 +167,31 @@ try {
 }
 ```
 
+## 🤖 AI Agent Prompts / AI 智能体提示词
+
+This package includes AI-ready integration prompts for multiple scenarios. Copy them into your AI coding assistant (Claude, Cursor, Copilot, etc.) to generate a complete UniAuth integration automatically.
+
+本包附带多个场景的 AI 集成提示词。将其复制到 AI 编程助手中，即可自动生成完整的 UniAuth 集成代码。
+
+```bash
+# After install, find prompts at:
+# 安装后，提示词文件位于：
+ls node_modules/@55387.ai/uniauth-client/ai-prompts/
+# → full-stack.md, oauth2-provider.md, mobile-trusted-client.md
+```
+
+| Prompt | Scenario / 场景 |
+|--------|----------------|
+| `full-stack.md` | Full-stack app with React + Node.js / 全栈应用 |
+| `oauth2-provider.md` | Use UniAuth as OAuth2/OIDC provider / OAuth2 提供者 |
+| `mobile-trusted-client.md` | Mobile & trusted client API / 移动端可信客户端 |
+
+> [!TIP]
+> Replace placeholders like `YOUR_UNIAUTH_URL` and `YOUR_CLIENT_ID` before pasting into your AI assistant.
+> 粘贴到 AI 助手前，请替换 `YOUR_UNIAUTH_URL` 和 `YOUR_CLIENT_ID` 等占位符。
+
+See all prompts: [docs/ai-prompts/](../../docs/ai-prompts/README.md)
+
 ## License
 
 MIT

@@ -162,6 +162,24 @@ try {
 }
 ```
 
+## 🤖 AI Agent Prompts / AI 智能体提示词
+
+This package includes an AI-ready integration prompt. Copy it into your AI coding assistant (Claude, Cursor, Copilot, etc.) to generate a complete backend protection setup automatically.
+
+本包附带 AI 集成提示词。将其复制到 AI 编程助手中，即可自动生成完整的后端保护代码。
+
+```bash
+# After install, find the prompt at:
+# 安装后，提示词文件位于：
+cat node_modules/@55387.ai/uniauth-server/ai-prompts/backend-protection.md
+```
+
+> [!TIP]
+> Replace placeholders like `YOUR_UNIAUTH_URL` and `YOUR_CLIENT_SECRET` before pasting into your AI assistant.
+> 粘贴到 AI 助手前，请替换 `YOUR_UNIAUTH_URL` 和 `YOUR_CLIENT_SECRET` 等占位符。
+
+See all prompts: [docs/ai-prompts/](../../docs/ai-prompts/README.md)
+
 ## License
 
 MIT
