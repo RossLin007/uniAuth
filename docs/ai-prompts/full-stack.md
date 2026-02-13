@@ -60,6 +60,8 @@ await client.registerWithEmail(email, password, nickname);
 await client.verifyMFA(mfaToken, code);         // MFA step
 client.startSocialLogin('google');              // Social login redirect
 client.loginWithSSO({ usePKCE: true });         // SSO redirect
+client.isSSOCallback();                         // Check SSO callback
+await client.handleSSOCallback();               // Handle SSO callback
 await client.getAccessToken();                  // Auto-refresh token
 ```
 
@@ -125,6 +127,111 @@ const user = await auth.getUser(payload.sub);
 3. **User-specific data**: Use `req.user.id` or `c.get('user').id` to scope data
 4. **Error handling**: JSON error responses with proper status codes
 5. **CORS**: Allow frontend origin
+
+### Auth Flow Requirements
+
+#### 1. Login Page & SSO (Recommended)
+Use standardized SSO login as the primary method.
+```tsx
+const { client } = useUniAuth();
+// Trigger standardized redirect
+const handleLogin = () => client.loginWithSSO({ usePKCE: true });
+```
+
+#### 2. SSO Callback Page (Critical)
+Implement a dedicated route `/auth/callback` to handle the redirect from UniAuth.
+**Official Recommended Pattern:**
+```tsx
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useUniAuth } from '@55387.ai/uniauth-react';
+
+export function SSOCallback() {
+  const { client } = useUniAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (client.isSSOCallback()) {
+      client.handleSSOCallback()
+        .then(() => navigate('/dashboard', { replace: true }))
+        .catch((err) => {
+          console.error(err);
+          navigate('/login?error=sso_failed', { replace: true });
+        });
+    }
+  }, [client, navigate]);
+
+  return <div>Processing login...</div>;
+}
+```
+
+#### 3. MFA Flow (Multi-Factor Authentication)
+All login methods (Email, Phone) may return `mfa_required: true`.
+**Implementation Pattern:**
+```tsx
+const handleLogin = async () => {
+  try {
+    const result = await client.loginWithEmail(email, password);
+    
+    if (result.mfa_required && result.mfa_token) {
+      // Show MFA Input Dialog
+      const mfaCode = await requestUserForCode(); 
+      await client.verifyMFA(result.mfa_token, mfaCode);
+      // Login success after MFA
+    }
+  } catch (err) {
+    if (err.code === 'MFA_REQUIRED') {
+      // Handle legacy error throwing if client is configured that way
+    }
+    showToast(err.message);
+  }
+};
+```
+
+#### 4. Token Management Strategy
+- **Auto-Refresh**: The SDK handles silent refresh automatically when you usage `client.getAccessToken()`.
+- **Expiration Handling**:
+  - Frontend: Intercept 401 responses and redirect to login.
+  - SWR/React-Query: Use `client.getAccessToken()` in fetchers to ensure fresh tokens.
+
+### Error Handling
+- Handle `TOKEN_EXPIRED`, `INVALID_TOKEN`, `RATE_LIMITED`, `NETWORK_ERROR`.
+- **Never use `alert()`**; use Toast/Snackbar for all errors.
+- If refresh fails, clear auth state and redirect to `/login`.
+
+### Testing Guidance
+#### Frontend (Vitest + RTL)
+Mock the `useUniAuth` hook to test protected routes without real network calls.
+```tsx
+vi.mock('@55387.ai/uniauth-react', () => ({
+  useUniAuth: () => ({
+    isAuthenticated: true,
+    user: { id: '1', nickname: 'Test User' },
+    login: vi.fn(),
+  }),
+}));
+```
+
+#### Backend (Supertest)
+Test protected routes by injecting a fake token or mocking the middleware if integration testing isn't possible.
+```typescript
+// integration test with supertest
+await request(app)
+  .get('/api/protected')
+  .set('Authorization', 'Bearer valid_mock_token')
+  .expect(200);
+```
+
+### Production Security Checklist
+- [ ] **HTTPS**: Enforce HTTPS in production.
+- [ ] **CORS**: Whitelist specific frontend domains (no `*`).
+- [ ] **Env Vars**: Inject secrets (`UNIAUTH_CLIENT_SECRET`) via environment variables, commit NO secrets to git.
+- [ ] **Logs**: Mask sensitive data (tokens, PII) in server logs.
+
+### Multi-Framework Support
+If using **Next.js** or **Hono**, refer to the specific integration examples.
+- **Next.js**: Use `uniauth-nextjs` (if available) or standard React SDK with Server Actions.
+- **Hono**: Use `@55387.ai/uniauth-server` Hono middleware.
 
 ### Design Tokens (Fan Design System)
 ```

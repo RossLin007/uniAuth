@@ -70,13 +70,27 @@ auth.configureSso({
 });
 
 // Trigger SSO login / 触发 SSO 登录
-auth.loginWithSSO();
+const handleLogin = () => {
+  // Recommended: Use PKCE for public clients
+  // 推荐：Public Client 使用 PKCE 模式
+  auth.loginWithSSO({ usePKCE: true });
+};
 
-// Handle callback / 在回调页面处理
-if (auth.isSSOCallback()) {
-    const result = await auth.handleSSOCallback();
-    // result.access_token, result.refresh_token
-}`}
+// Handle callback (React Example)
+// 在回调页面处理 (React 示例)
+useEffect(() => {
+  if (auth.isSSOCallback()) {
+    auth.handleSSOCallback()
+      .then((res) => {
+        console.log('SSO Login Success', res);
+        // Redirect to dashboard
+      })
+      .catch((err) => {
+        console.error('SSO Failed', err);
+        // Redirect to login with error
+      });
+  }
+}, []);`}
                     </pre>
                 </div>
                 <div className={`bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3`}>

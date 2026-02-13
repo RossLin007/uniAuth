@@ -169,7 +169,12 @@
             "oauth2AuthFailed": "Client authentication failed",
             "oauth2AuthFailedFix": "Frontend directly calling Token endpoint requires Public Client config, otherwise use backend proxy",
             "oauth2NotFound": "404 error",
-            "oauth2NotFoundFix": "Make sure using correct endpoint: /api/v1/oauth2/authorize (note v1 and oauth2)"
+            "oauth2NotFoundFix": "Make sure using correct endpoint: /api/v1/oauth2/authorize (note v1 and oauth2)",
+            "mfaFlow": "MFA Flow Handling",
+            "mfaFlowDesc": "Handle multi-factor authentication when mfa_required is true",
+            "mfaHandlingExample": "MFA Handling Example",
+            "ssoCallbackHandling": "SSO Callback Handling",
+            "ssoCallbackDesc": "Handle the redirect from UniAuth SSO in your frontend"
         }
     },
     "stats": {

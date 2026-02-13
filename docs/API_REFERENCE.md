@@ -59,6 +59,16 @@ Phone must be E.164 format: `+<country_code><number>`.
     "is_new_user": false
   }
 }
+
+// Or IF MFA is enabled for user:
+{
+  "success": true,
+  "data": {
+    "user": { "id": "uuid", "phone": "..." },
+    "mfa_required": true,
+    "mfa_token": "mfa_xyz..."
+  }
+}
 ```
 If `mfa_required: true`, see MFA section.
 </details>
@@ -162,6 +172,32 @@ Supported providers: `google`, `github`, `wechat`
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/api/v1/auth/mfa/verify-login` | ❌ | Verify MFA during login / 登录时验证 MFA |
+
+<details>
+<summary><strong>POST /api/v1/auth/mfa/verify-login</strong></summary>
+
+**Request:**
+```json
+{
+  "mfa_token": "mfa_xyz...",
+  "code": "123456" 
+}
+```
+* `code`: 6-digit TOTP code OR 8-10 char recovery code.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "user": { "id": "uuid", "email": "..." },
+    "access_token": "eyJ...",
+    "refresh_token": "xxx",
+    "expires_in": 3600
+  }
+}
+```
+</details>
 
 ---
 

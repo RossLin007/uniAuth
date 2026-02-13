@@ -30,11 +30,14 @@
   - [B2. 后端代理 (Confidential Client)](#b2-后端代理-confidential-client)
 - [C. Trusted Client API（嵌入式登录 API）](#c-trusted-client-api嵌入式登录-api)
 - [D. 标准 OIDC 接入（非 Node.js 项目）](#d-标准-oidc-接入非-nodejs-项目)
+- [🔁 SSO 回调页标准实现](#-sso-回调页标准实现)
 - [🔐 MFA 多因素认证处理（重要！）](#-mfa-多因素认证处理重要)
 - [🔑 Token 管理](#-token-管理)
 - [🛡️ 后端 Token 验证](#️-后端-token-验证)
+- [🧪 测试指南](#-测试指南)
 - [🔗 账号关联（Account Linking）](#-账号关联account-linking)
 - [⚠️ 错误处理](#️-错误处理)
+- [🔒 生产安全与部署建议](#-生产安全与部署建议)
 - [❓ FAQ 常见问题](#-faq-常见问题)
 
 ---
@@ -532,21 +535,28 @@ auth.configureSso({
 });
 
 // Step 2: 触发登录（页面跳转到 UniAuth）/ Trigger login
-auth.loginWithSSO();              // 基础模式
-auth.loginWithSSO({ usePKCE: true }); // 推荐使用 PKCE
+const handleLogin = () => {
+  // 推荐使用 PKCE 模式 / Recommended PKCE mode
+  auth.loginWithSSO({ usePKCE: true });
+};
 
-// Step 3: 回调页面处理 / Callback page handling
-// 在你的 /callback 路由中：
-if (auth.isSSOCallback()) {
-  try {
-    const result = await auth.handleSSOCallback();
-    // result: { access_token, refresh_token?, token_type, id_token? }
-    console.log('SSO 登录成功');
-    window.location.href = '/dashboard';
-  } catch (error) {
-    console.error('SSO 回调处理失败:', error);
+// Step 3: 回调页面处理 (React 示例) / Callback page handling (React)
+// 在你的 /callback 路由组件中 / In your callback route component:
+useEffect(() => {
+  if (auth.isSSOCallback()) {
+    auth.handleSSOCallback()
+      .then((result) => {
+        console.log('SSO 登录成功', result);
+        // 使用 replace 为了不破坏历史记录 / Use replace to avoid breaking history
+        navigate('/dashboard', { replace: true });
+      })
+      .catch((error) => {
+        console.error('SSO 回调处理失败:', error);
+        // 错误处理：跳转回登录页带错误信息 / Error handling: redirect back to login with error
+        navigate('/login?error=sso_failed', { replace: true });
+      });
   }
-}
+}, []);
 ```
 
 ---
@@ -955,51 +965,54 @@ async function handleLogin() {
     // 或 / or: await auth.loginWithEmailCode('user@example.com', '123456');
 
     if (result.mfa_required) {
-      // ========== MFA 处理开始 ==========
+      // ========== MFA 处理开始 / MFA Handling Start ==========
       
-      // 1. 在 UI 中展示 MFA 输入框
+      // 1. 在 UI 中展示 MFA 输入框 (Dialog/Modal)
       //    Show MFA input in your UI
-      showMFADialog();
-
-      // 2. 用户输入验证码后调用
-      //    Call after user enters the code
-      const mfaCode = await getMFACodeFromUser(); // 你的 UI 逻辑
+      const mfaCode = await promptUserForMFACode(); // 你的 UI 逻辑 / Your UI logic
 
       try {
+        // 2. 验证 MFA / Verify MFA
         const mfaResult = await auth.verifyMFA(result.mfa_token!, mfaCode);
-        // 登录成功！mfaResult 包含 access_token 和 refresh_token
+        
+        // 3. 登录成功！/ Login Success!
         console.log('MFA 验证通过，登录成功');
-        redirectToDashboard();
+        onLoginSuccess(mfaResult.user);
+        
       } catch (mfaError) {
-        if (mfaError instanceof UniAuthError) {
-          if (mfaError.code === 'MFA_VERIFY_FAILED') {
-            showError('验证码错误，请重试');
-            // 用户可以重试输入，不需要重新登录
-          }
+        if (mfaError instanceof UniAuthError && mfaError.code === 'MFA_VERIFY_FAILED') {
+          showToast('验证码错误，请重试', 'error');
+          // 这里可以让用户重试输入，而不需要重新开始登录流程
+          // Allow user to retry input without restarting login
+          return; 
         }
+        throw mfaError; // 其他错误抛出处理 / Throw other errors
       }
-
-      // ========== MFA 处理结束 ==========
       return;
     }
 
-    // 正常登录成功（用户未开启 MFA）
+    // 正常登录成功（用户未开启 MFA）/ Normal login success
     console.log('登录成功:', result.user);
-    redirectToDashboard();
+    onLoginSuccess(result.user);
 
   } catch (error) {
+    // 统一错误处理 / Unified error handling
     if (error instanceof UniAuthError) {
       switch (error.code) {
         case AuthErrorCode.VERIFY_FAILED:
-          showError('验证码错误');
+          showToast('验证码错误', 'error');
           break;
         case AuthErrorCode.LOGIN_FAILED:
-          showError('密码错误');
+          showToast('账号或密码错误', 'error');
           break;
         case AuthErrorCode.RATE_LIMITED:
-          showError('操作太频繁，请稍后再试');
+          showToast('操作太频繁，请稍后再试', 'warning');
           break;
+        default:
+          showToast(error.message, 'error');
       }
+    } else {
+      console.error('登录异常:', error);
     }
   }
 }
@@ -1051,6 +1064,47 @@ await auth.verifyMFA(mfaToken, 'ABCD-1234-EF');  // 恢复码代替6位数字
 
 ---
 
+## 🔁 SSO 回调页标准实现
+
+> [!IMPORTANT]
+> **如果你使用 SSO（方式 B），必须实现回调页**。SDK 会提供 `isSSOCallback()` 与 `handleSSOCallback()`，你需要在回调路由中调用并处理异常。
+
+### React/Vite 回调页示例
+
+```tsx
+// /auth/callback
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useUniAuth } from '@55387.ai/uniauth-react';
+
+export default function AuthCallback() {
+  const { client } = useUniAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    (async () => {
+      if (!client.isSSOCallback()) return;
+      try {
+        await client.handleSSOCallback();
+        navigate('/dashboard', { replace: true });
+      } catch (error) {
+        navigate('/login?error=sso_failed', { replace: true });
+      }
+    })();
+  }, [client, navigate]);
+
+  return <div>Signing you in...</div>;
+}
+```
+
+### 失败处理建议
+
+- `sso_failed`：提示用户重新登录
+- `state_mismatch`：提示安全校验失败，建议重新发起登录
+- `network_error`：提示网络异常并重试
+
+---
+
 ## 🔑 Token 管理
 
 ### Token 类型 / Token Types
@@ -1063,15 +1117,30 @@ await auth.verifyMFA(mfaToken, 'ABCD-1234-EF');  // 恢复码代替6位数字
 
 ### 自动刷新（SDK） / Auto Refresh (SDK)
 
-```typescript
-// SDK 自动处理 token 刷新
-const token = await auth.getAccessToken(); // 如果过期会自动刷新
+> [!TIP]
+> **最佳实践**：不要手动存储 token。SDK 内部会自动处理 token 存储和过期刷新。你只需要调用 `getAccessToken()`。
+>
+> **Best Practice**: Don't manually store tokens. The SDK handles storage and refresh. Just call `getAccessToken()`.
 
-// 监听 Token 刷新事件
+```typescript
+// 1. 获取有效 Token (自动处理刷新)
+//    Get valid token (auto refreshes if expired)
+const token = await auth.getAccessToken();
+
+// 2. 在 HTTP 请求中使用
+//    Use in HTTP requests
+const res = await fetch('/api/protected', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+
+// 3. 监听 Token 刷新事件 (可选，用于调试或同步状态)
+//    Listen to refresh events (optional)
 const auth = new UniAuthClient({
   baseUrl: 'https://sso.55387.xyz',
   onTokenRefresh: (tokens) => {
-    console.log('Token 已自动刷新');
+    console.log('Token 已自动刷新/Refreshed:', tokens.expires_in);
   },
 });
 ```
@@ -1102,6 +1171,30 @@ await fetch('https://sso.55387.xyz/api/v1/auth/logout', {
   headers: { 'Authorization': `Bearer ${accessToken}` },
 });
 ```
+
+---
+
+## 🧪 测试指南
+
+### 前端测试（Vitest + React Testing Library）
+
+- Mock `useUniAuth()` 与 `client`，覆盖：
+  - 登录成功 / 失败
+  - `mfa_required` 分支
+  - SSO 回调页成功 / 失败
+
+示例（伪代码）：
+```ts
+vi.mock('@55387.ai/uniauth-react', () => ({
+  useUniAuth: () => ({ client: mockClient })
+}));
+```
+
+### 后端测试（supertest）
+
+- 覆盖 `auth.middleware()` 的 200/401/403
+- 模拟 `TOKEN_EXPIRED` 与 `INVALID_TOKEN`
+- 验证 JSON 错误格式
 
 ---
 
@@ -1289,6 +1382,17 @@ try {
   }
 }
 ```
+
+---
+
+## 🔒 生产安全与部署建议
+
+1. **仅服务端保存 `client_secret`**，前端永不暴露
+2. **强制 HTTPS**（含回调页与 API）
+3. **CORS 白名单**：只允许业务域名
+4. **Token 存储策略**：有后端优先使用 httpOnly Cookie
+5. **日志脱敏**：禁止输出 token/secret
+6. **回调 state 校验**：防止 CSRF
 
 ---
 

@@ -200,10 +200,10 @@ export default function AuthenticationDoc() {
                         <tr key={index} className={`border-t ${borderColor}`}>
                             <td className="px-4 py-3">
                                 <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${endpoint.method === 'POST'
-                                        ? 'bg-green-500/20 text-green-500'
-                                        : endpoint.method === 'DELETE'
-                                            ? 'bg-red-500/20 text-red-500'
-                                            : 'bg-blue-500/20 text-blue-500'
+                                    ? 'bg-green-500/20 text-green-500'
+                                    : endpoint.method === 'DELETE'
+                                        ? 'bg-red-500/20 text-red-500'
+                                        : 'bg-blue-500/20 text-blue-500'
                                     }`}>
                                     {endpoint.method}
                                 </span>
@@ -288,22 +288,52 @@ GET https://sso.55387.xyz/api/v1/auth/oauth/github/authorize
   ?redirect_uri=https://your-app.com/callback`}
                     </pre>
                 </div>
-            </div>
+                {/* MFA Handling Section */}
+                <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <h3 className={`text-lg font-bold ${textPrimary}`}>
+                        🛡️ {t('docs.content.mfaFlow')}
+                    </h3>
+                    <p className={textSecondary}>{t('docs.content.mfaFlowDesc')}</p>
 
-            {/* Passkey / WebAuthn Section */}
-            <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <h3 className={`text-lg font-bold ${textPrimary}`}>
-                    🔐 Passkey / WebAuthn
-                </h3>
-                <EndpointsTable endpoints={passkeyEndpoints} />
+                    <div className="space-y-3">
+                        <h4 className={`font-semibold ${textPrimary}`}>
+                            {t('docs.content.mfaHandlingExample')}
+                        </h4>
+                        <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
+                            <pre className="text-xs text-slate-600 dark:text-slate-400">
+                                {`// 1. Check for mfa_required in login response
+// 1. 检查登录响应中的 mfa_required
+const result = await auth.loginWithCode(phone, code);
 
-                <div className="space-y-3">
-                    <h4 className={`font-semibold ${textPrimary}`}>
-                        {t('docs.content.passkeyExample')}
-                    </h4>
-                    <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
-                        <pre className="text-xs text-slate-600 dark:text-slate-400">
-                            {`// Step 1: Get authentication options / 获取认证选项
+if (result.mfa_required) {
+  // 2. Show MFA Input UI
+  // 2. 展示 MFA 输入界面
+  const mfaCode = await promptUserForMfaCode();
+  
+  // 3. Verify MFA
+  // 3. 验证 MFA
+  const mfaResult = await auth.verifyMFA(result.mfa_token, mfaCode);
+  console.log('Login Success:', mfaResult.user);
+}`}
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Passkey / WebAuthn Section */}
+                <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <h3 className={`text-lg font-bold ${textPrimary}`}>
+                        🔐 Passkey / WebAuthn
+                    </h3>
+                    <EndpointsTable endpoints={passkeyEndpoints} />
+
+                    <div className="space-y-3">
+                        <h4 className={`font-semibold ${textPrimary}`}>
+                            {t('docs.content.passkeyExample')}
+                        </h4>
+                        <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
+                            <pre className="text-xs text-slate-600 dark:text-slate-400">
+                                {`// Step 1: Get authentication options / 获取认证选项
 const optionsRes = await fetch('https://sso.55387.xyz/api/v1/passkey/authenticate/options', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -322,25 +352,25 @@ const verifyRes = await fetch('https://sso.55387.xyz/api/v1/passkey/authenticate
     body: JSON.stringify(credential),
 });
 const { access_token, refresh_token } = await verifyRes.json();`}
-                        </pre>
+                            </pre>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Trusted Client API Section */}
-            <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <h3 className={`text-lg font-bold ${textPrimary}`}>
-                    🏢 Trusted Client API
-                </h3>
-                <EndpointsTable endpoints={trustedEndpoints} />
+                {/* Trusted Client API Section */}
+                <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <h3 className={`text-lg font-bold ${textPrimary}`}>
+                        🏢 Trusted Client API
+                    </h3>
+                    <EndpointsTable endpoints={trustedEndpoints} />
 
-                <div className="space-y-3">
-                    <h4 className={`font-semibold ${textPrimary}`}>
-                        {t('docs.content.trustedClientExample')}
-                    </h4>
-                    <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
-                        <pre className="text-xs text-slate-600 dark:text-slate-400">
-                            {`// Trusted Client: Send phone code and login directly
+                    <div className="space-y-3">
+                        <h4 className={`font-semibold ${textPrimary}`}>
+                            {t('docs.content.trustedClientExample')}
+                        </h4>
+                        <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
+                            <pre className="text-xs text-slate-600 dark:text-slate-400">
+                                {`// Trusted Client: Send phone code and login directly
 // 可信客户端：发送手机验证码并直接登录
 const sendRes = await fetch('https://sso.55387.xyz/api/v1/trusted-auth/phone/send-code', {
     method: 'POST',
@@ -365,25 +395,25 @@ const loginRes = await fetch('https://sso.55387.xyz/api/v1/trusted-auth/phone/lo
     }),
 });
 const { access_token, refresh_token } = await loginRes.json();`}
-                        </pre>
+                            </pre>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Account Linking Section */}
-            <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <h3 className={`text-lg font-bold ${textPrimary}`}>
-                    🔗 Account Linking
-                </h3>
-                <EndpointsTable endpoints={accountLinkingEndpoints} />
+                {/* Account Linking Section */}
+                <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <h3 className={`text-lg font-bold ${textPrimary}`}>
+                        🔗 Account Linking
+                    </h3>
+                    <EndpointsTable endpoints={accountLinkingEndpoints} />
 
-                <div className="space-y-3">
-                    <h4 className={`font-semibold ${textPrimary}`}>
-                        {t('docs.content.accountLinkingExample')}
-                    </h4>
-                    <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
-                        <pre className="text-xs text-slate-600 dark:text-slate-400">
-                            {`// List linked accounts / 查看已关联账号
+                    <div className="space-y-3">
+                        <h4 className={`font-semibold ${textPrimary}`}>
+                            {t('docs.content.accountLinkingExample')}
+                        </h4>
+                        <div className={`${codeBg} rounded-lg p-4 overflow-x-auto`}>
+                            <pre className="text-xs text-slate-600 dark:text-slate-400">
+                                {`// List linked accounts / 查看已关联账号
 const accounts = await fetch('https://sso.55387.xyz/api/v1/account-linking/accounts', {
     headers: { 'Authorization': 'Bearer <access_token>' },
 }).then(r => r.json());
@@ -406,10 +436,10 @@ await fetch('https://sso.55387.xyz/api/v1/account-linking/unlink/github', {
     method: 'DELETE',
     headers: { 'Authorization': 'Bearer <access_token>' },
 });`}
-                        </pre>
+                            </pre>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    );
+            );
 }

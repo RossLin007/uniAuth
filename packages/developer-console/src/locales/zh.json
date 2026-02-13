@@ -169,7 +169,12 @@
             "oauth2AuthFailed": "Client authentication failed",
             "oauth2AuthFailedFix": "前端直接调用 Token 端点需配置为 Public Client，否则需通过后端代理",
             "oauth2NotFound": "404 错误",
-            "oauth2NotFoundFix": "确认使用正确的端点：/api/v1/oauth2/authorize（注意 v1 和 oauth2）"
+            "oauth2NotFoundFix": "确认使用正确的端点：/api/v1/oauth2/authorize（注意 v1 和 oauth2）",
+            "mfaFlow": "MFA 流程处理",
+            "mfaFlowDesc": "当返回 mfa_required 为 true 时处理多因素认证",
+            "mfaHandlingExample": "MFA 处理示例",
+            "ssoCallbackHandling": "SSO 回调处理",
+            "ssoCallbackDesc": "在前端处理 UniAuth SSO 的重定向回调"
         }
     },
     "stats": {
