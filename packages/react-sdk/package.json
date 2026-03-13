@@ -1,6 +1,6 @@
 {
     "name": "@55387.ai/uniauth-react",
-    "version": "1.0.3",
+    "version": "2.0.0",
     "description": "Official React components and hooks for UniAuth integration",
     "type": "module",
     "main": "./dist/index.js",
@@ -34,7 +34,7 @@
         "react-dom": ">=16.8.0"
     },
     "dependencies": {
-        "@55387.ai/uniauth-client": "workspace:*"
+        "@55387.ai/uniauth-client": "^1.2.5"
     },
     "devDependencies": {
         "@testing-library/jest-dom": "^6.9.1",

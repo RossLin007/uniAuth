@@ -441,5 +441,6 @@ await fetch('https://sso.55387.xyz/api/v1/account-linking/unlink/github', {
                     </div>
                 </div>
             </div>
-            );
+        </div>
+    );
 }
